@@ -5,6 +5,7 @@ import { Sun, Moon, LogOut, Home, History, Camera, CheckCircle, AlertCircle, Rot
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import { Pie } from 'react-chartjs-2';
 import '../App.css';
+import { API_URL } from '../config';
 
 // Register Chart.js components
 ChartJS.register(ArcElement, Tooltip, Legend);
@@ -169,7 +170,11 @@ function SoilAnalysis() {
    //  BEFORE (OLD)
    // const response = await fetch('http://localhost:8000/predict', {
    // AFTER (NEW)
-      const response = await fetch('/api/predict', { // <-- Changed to relative path /api
+      // BEFORE:
+      // const response = await fetch('/api/predict', {
+
+      // AFTER:
+      const response = await fetch(`${API_URL}/predict`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ image: imageData.split(',')[1] }),
@@ -215,7 +220,11 @@ function SoilAnalysis() {
           location: location || null,
         };
   
-        response = await fetch('/api/command', {
+        // BEFORE:
+        // response = await fetch('/api/command', {
+
+        // AFTER:
+        response = await fetch(`${API_URL}/command`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -225,7 +234,11 @@ function SoilAnalysis() {
         });
       } else {
         // Use GET for other commands (1, 2, W, R)
-        const url = `/api/command?input=${cmd}`;
+        // BEFORE:
+        // const url = `/api/command?input=${cmd}`;
+
+        // AFTER:
+        const url = `${API_URL}/command?input=${cmd}`;
         const headers = {};
         
         response = await fetch(url, { 
