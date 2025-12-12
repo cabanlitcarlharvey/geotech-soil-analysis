@@ -47,14 +47,38 @@ def mobilenet_v2_preprocess(image):
 
 app = FastAPI()
 
-# CORS for frontend
+# ✅ UPDATED CORS: More permissive settings for ngrok
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:5173"],
+    allow_origins=[
+        "http://localhost:3000", 
+        "http://localhost:5173",
+        "https://geotech-soil-analysis-pink.vercel.app",  # Your Vercel URL
+        "https://*.vercel.app",  # All Vercel preview deployments
+        "https://*.ngrok-free.app",  # ngrok free tier
+        "https://*.ngrok.io",  # ngrok older format
+        "https://*.ngrok.app",  # ngrok newer format
+    ],
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],  # ✅ Explicitly allow OPTIONS
+    allow_headers=["*"],  # Allow all headers
+    expose_headers=["*"],  # Expose all headers
+    max_age=3600,  # Cache preflight for 1 hour
 )
+
+# ✅ ADD THIS: Explicit OPTIONS handler for all routes
+@app.options("/{full_path:path}")
+async def options_handler(full_path: str):
+    """Handle CORS preflight requests"""
+    return JSONResponse(
+        content={"message": "OK"},
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+            "Access-Control-Allow-Headers": "*",
+            "Access-Control-Max-Age": "3600",
+        }
+    )
 
 # Log exceptions
 @app.middleware("http")
