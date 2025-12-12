@@ -16,6 +16,9 @@ import tensorflow as tf
 from tensorflow import keras
 from pydantic import BaseModel # Added for /receive-analysis data structure
 from typing import Optional
+from fastapi import FastAPI, HTTPException, Request, Header
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 class CommandRequest(BaseModel):
     input: str
