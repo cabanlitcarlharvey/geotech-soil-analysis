@@ -16,9 +16,6 @@ import tensorflow as tf
 from tensorflow import keras
 from pydantic import BaseModel # Added for /receive-analysis data structure
 from typing import Optional
-from fastapi import FastAPI, HTTPException, Request, Header
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 
 class CommandRequest(BaseModel):
     input: str
@@ -50,38 +47,18 @@ def mobilenet_v2_preprocess(image):
 
 app = FastAPI()
 
-# ✅ UPDATED CORS: More permissive settings for ngrok
+# ============================================
+# ✅ FINAL CORS FIX - Super Permissive (for testing)
+# ============================================
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000", 
-        "http://localhost:5173",
-        "https://geotech-soil-analysis-pink.vercel.app",  # Your Vercel URL
-        "https://*.vercel.app",  # All Vercel preview deployments
-        "https://*.ngrok-free.app",  # ngrok free tier
-        "https://*.ngrok.io",  # ngrok older format
-        "https://*.ngrok.app",  # ngrok newer format
-    ],
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],  # ✅ Explicitly allow OPTIONS
+    allow_origins=["*"],  # Allow ALL origins
+    allow_credentials=False,  # Must be False when using "*"
+    allow_methods=["*"],  # Allow all HTTP methods
     allow_headers=["*"],  # Allow all headers
-    expose_headers=["*"],  # Expose all headers
-    max_age=3600,  # Cache preflight for 1 hour
+    expose_headers=["*"],
+    max_age=3600,
 )
-
-# ✅ ADD THIS: Explicit OPTIONS handler for all routes
-@app.options("/{full_path:path}")
-async def options_handler(full_path: str):
-    """Handle CORS preflight requests"""
-    return JSONResponse(
-        content={"message": "OK"},
-        headers={
-            "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-            "Access-Control-Allow-Headers": "*",
-            "Access-Control-Max-Age": "3600",
-        }
-    )
 
 # Log exceptions
 @app.middleware("http")
