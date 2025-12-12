@@ -1,0 +1,9 @@
+/* Existing App.css content */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Add any custom styles if needed */
+.progress-step {
+  transition: all 0.3s ease;
+}

@@ -1,0 +1,12 @@
+fastapi
+uvicorn
+python-multipart
+requests
+python-dotenv
+supabase
+pydantic
+opencv-python-headless
+numpy
+tensorflow==2.19.0
+keras==3.9.0
+# PyJWT
