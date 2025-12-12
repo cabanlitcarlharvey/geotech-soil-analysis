@@ -165,26 +165,23 @@ function SoilAnalysis() {
       canvas.height = video.videoHeight;
       canvas.getContext('2d').drawImage(video, 0, 0);
       const imageData = canvas.toDataURL('image/jpeg');
-
+  
       setCapturedImageData(imageData);
-   //  BEFORE (OLD)
-   // const response = await fetch('http://localhost:8000/predict', {
-   // AFTER (NEW)
-      // BEFORE:
-      // const response = await fetch('/api/predict', {
-
-      // AFTER:
+      
       const response = await fetch(`${API_URL}/predict`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'ngrok-skip-browser-warning': 'true',  // ✅ ADD THIS
+        },
         body: JSON.stringify({ image: imageData.split(',')[1] }),
       });
-
+  
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.detail || `HTTP error: ${response.status}`);
       }
-
+  
       const data = await response.json();
       
       setImagePrediction(data.soil_type);
@@ -202,125 +199,121 @@ function SoilAnalysis() {
     }
   };
 
-  const sendCommand = async (cmd) => {
-    try {
-      if (!jwtToken && cmd === '3') {
-        throw new Error('User not authenticated. Please log in.');
-      }
-  
-      let response;
-  
-      // ✅ FIXED: Use POST for command 3 to avoid URL length limits
-      if (cmd === '3') {
-        // Use POST request with JSON body for command 3
-        const requestBody = {
-          input: cmd,
-          image_soil_type: imagePrediction || null,
-          image_data: capturedImageData || null,
-          location: location || null,
-        };
-  
-        // BEFORE:
-        // response = await fetch('/api/command', {
-
-        // AFTER:
-        response = await fetch(`${API_URL}/command`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${jwtToken}`
-          },
-          body: JSON.stringify(requestBody)
-        });
-      } else {
-        // Use GET for other commands (1, 2, W, R)
-        // BEFORE:
-        // const url = `/api/command?input=${cmd}`;
-
-        // AFTER:
-        const url = `${API_URL}/command?input=${cmd}`;
-        const headers = {};
-        
-        response = await fetch(url, { 
-          method: 'GET',
-          headers 
-        });
-      }
-  
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || `HTTP error: ${response.status}`);
-      }
-  
-      const data = await response.json();
-      console.log('Backend response:', data);
-  
-      // Validate results data
-      if (data.status === 'results') {
-        const { total_weight, gravel_weight, sand_weight, gravel_percent, sand_percent, fines_percent } = data;
-        if (
-          total_weight <= 0 ||
-          gravel_weight < 0 ||
-          sand_weight < 0 ||
-          gravel_weight + sand_weight > total_weight + 1 ||
-          Math.abs(gravel_percent + sand_percent + fines_percent - 100) > 1
-        ) {
-          throw new Error('Invalid weight or percentage data received from Arduino.');
-        }
-      }
-  
-      setError('');
-      
-      // Don't change step for Weight Check (W command)
-      if (cmd !== 'W') {
-        setStep(data.message || 'Unknown status');
-      }
-      
-      // Handle different response types
-      if (data.status === 'total_weight') {
-        setTotalWeight(data.weight);
-        setWeight(data.weight);
-        setStep('Place gravel fraction, press 2...');
-      } else if (data.status === 'gravel_weight') {
-        setGravelWeight(data.weight);
-        setWeight(data.weight);
-        setStep('Place sand fraction, press 3...');
-      } else if (data.status === 'results') {
-        setResults({
-          total_weight: data.total_weight,
-          gravel_weight: data.gravel_weight,
-          sand_weight: data.sand_weight,
-          gravel_percent: data.gravel_percent,
-          sand_percent: data.sand_percent,
-          fines_percent: data.fines_percent,
-          soil_type: data.soil_type,
-        });
-        setSaveStatus(data.save_status || '');
-        setWeight(null);
-        setStep('Done. Press R to reset');
-      } else if (data.status === 'weight_check') {
-        setWeight(data.weight);
-      } else if (data.status === 'reset') {
-        setTotalWeight(null);
-        setGravelWeight(null);
-        setResults(null);
-        setWeight(null);
-        setImagePrediction(null);
-        setPredictionConfidence(null);
-        setPredictionStatus(null);
-        setPredictionProbabilities(null);
-        setCapturedImageData(null);
-        setLocation('');
-        setIsCameraActive(false);
-        setSaveStatus('');
-        setStep('Enter location for soil sample...');
-      }
-    } catch (error) {
-      console.error('Send command error:', error);
-      setError(`Error: ${error.message}`);
-      setSaveStatus('');
+  // ============================================
+// UPDATED sendCommand function
+// ============================================
+const sendCommand = async (cmd) => {
+  try {
+    if (!jwtToken && cmd === '3') {
+      throw new Error('User not authenticated. Please log in.');
     }
-  };
+
+    let response;
+
+    if (cmd === '3') {
+      // Use POST request with JSON body for command 3
+      const requestBody = {
+        input: cmd,
+        image_soil_type: imagePrediction || null,
+        image_data: capturedImageData || null,
+        location: location || null,
+      };
+
+      response = await fetch(`${API_URL}/command`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${jwtToken}`,
+          'ngrok-skip-browser-warning': 'true',  // ✅ ADD THIS
+        },
+        body: JSON.stringify(requestBody)
+      });
+    } else {
+      // Use GET for other commands (1, 2, W, R)
+      const url = `${API_URL}/command?input=${cmd}`;
+      
+      response = await fetch(url, { 
+        method: 'GET',
+        headers: {
+          'ngrok-skip-browser-warning': 'true',  // ✅ ADD THIS
+        }
+      });
+    }
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.detail || `HTTP error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log('Backend response:', data);
+
+    // Validate results data
+    if (data.status === 'results') {
+      const { total_weight, gravel_weight, sand_weight, gravel_percent, sand_percent, fines_percent } = data;
+      if (
+        total_weight <= 0 ||
+        gravel_weight < 0 ||
+        sand_weight < 0 ||
+        gravel_weight + sand_weight > total_weight + 1 ||
+        Math.abs(gravel_percent + sand_percent + fines_percent - 100) > 1
+      ) {
+        throw new Error('Invalid weight or percentage data received from Arduino.');
+      }
+    }
+
+    setError('');
+    
+    // Don't change step for Weight Check (W command)
+    if (cmd !== 'W') {
+      setStep(data.message || 'Unknown status');
+    }
+    
+    // Handle different response types
+    if (data.status === 'total_weight') {
+      setTotalWeight(data.weight);
+      setWeight(data.weight);
+      setStep('Place gravel fraction, press 2...');
+    } else if (data.status === 'gravel_weight') {
+      setGravelWeight(data.weight);
+      setWeight(data.weight);
+      setStep('Place sand fraction, press 3...');
+    } else if (data.status === 'results') {
+      setResults({
+        total_weight: data.total_weight,
+        gravel_weight: data.gravel_weight,
+        sand_weight: data.sand_weight,
+        gravel_percent: data.gravel_percent,
+        sand_percent: data.sand_percent,
+        fines_percent: data.fines_percent,
+        soil_type: data.soil_type,
+      });
+      setSaveStatus(data.save_status || '');
+      setWeight(null);
+      setStep('Done. Press R to reset');
+    } else if (data.status === 'weight_check') {
+      setWeight(data.weight);
+    } else if (data.status === 'reset') {
+      setTotalWeight(null);
+      setGravelWeight(null);
+      setResults(null);
+      setWeight(null);
+      setImagePrediction(null);
+      setPredictionConfidence(null);
+      setPredictionStatus(null);
+      setPredictionProbabilities(null);
+      setCapturedImageData(null);
+      setLocation('');
+      setIsCameraActive(false);
+      setSaveStatus('');
+      setStep('Enter location for soil sample...');
+    }
+  } catch (error) {
+    console.error('Send command error:', error);
+    setError(`Error: ${error.message}`);
+    setSaveStatus('');
+  }
+};
 
   const toggleTheme = () => {
     const newTheme = isDark ? 'light' : 'dark';
