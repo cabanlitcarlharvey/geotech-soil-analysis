@@ -16,9 +16,17 @@ const ResetPassword = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const theme = localStorage.getItem('theme') || 'light';
-    document.documentElement.classList.toggle('dark', theme === 'dark');
-  }, []);
+    const verifySession = async () => {
+      const { data: { session }, error } = await supabase.auth.getSession();
+      
+      if (error || !session) {
+        setErrors(['Invalid or expired reset link. Please request a new one.']);
+        setTimeout(() => navigate('/forgot-password'), 3000);
+      }
+    };
+    
+    verifySession();
+  }, [navigate]);
 
   const validatePassword = (pwd) => {
     const errs = [];
@@ -38,33 +46,42 @@ const ResetPassword = () => {
     e.preventDefault();
     setErrors([]);
     setMessage('');
-
+  
     if (password !== confirmPassword) {
       setErrors(['Passwords do not match.']);
       return;
     }
-
+  
     const pwdErrors = validatePassword(password);
     if (pwdErrors.length > 0) {
       setErrors(pwdErrors);
       return;
     }
-
+  
     setLoading(true);
-
-    const { error } = await supabase.auth.updateUser({
-      password: password,
-    });
-
-    if (error) {
-      setErrors([error.message]);
+  
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: password,
+      });
+  
+      if (error) {
+        setErrors([error.message]);
+        setLoading(false);
+        return;
+      }
+  
+      setMessage('Password successfully updated! Redirecting to login...');
+      
+      // Sign out after password reset (best practice)
+      await supabase.auth.signOut();
+      
+      setTimeout(() => navigate('/login'), 3000);
+    } catch (err) {
+      setErrors([err.message || 'An error occurred']);
+    } finally {
       setLoading(false);
-      return;
     }
-
-    setMessage('Password successfully updated. Redirecting to login...');
-    setTimeout(() => navigate('/'), 3000);
-    setLoading(false);
   };
 
   return (
