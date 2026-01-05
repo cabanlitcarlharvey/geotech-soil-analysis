@@ -406,8 +406,16 @@ const AdminDashboard = () => {
 
       {/* Header */}
       <header className="bg-white/95 dark:bg-gray-800/95 shadow px-8 py-6 flex justify-between items-center border-b border-amber-700 transition-all duration-300" style={{ backdropFilter: 'blur(4px)' }}>
-        <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/admin-home')}>
-          <svg width="44" height="44" fill="none" viewBox="0 0 48 48">
+      <div
+          className="flex items-center gap-3 cursor-pointer group transition-transform duration-300 hover:scale-105"
+          onClick={() => window.location.reload()}
+          title="Refresh Admin Dashboard"
+          tabIndex={0}
+          role="button"
+          onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') window.location.reload(); }}
+          aria-label="Refresh Admin Dashboard"
+        >
+          <svg width="44" height="44" fill="none" viewBox="0 0 48 48" aria-hidden>
             <ellipse cx="24" cy="40" rx="18" ry="6" fill="#A0522D" />
             <ellipse cx="24" cy="34" rx="14" ry="5" fill="#8B5E3C" />
             <ellipse cx="24" cy="28" rx="10" ry="4" fill="#C2B280" />
