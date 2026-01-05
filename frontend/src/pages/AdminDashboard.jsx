@@ -1,23 +1,21 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../supabaseClient';
-import { LogOut, Edit2, Sun, Moon, CheckCircle, XCircle, AlertCircle, X } from 'lucide-react';
+import { LogOut, Edit2, Sun, Moon, CheckCircle, XCircle, AlertCircle, X, Users, UserCheck, UserX, Shield } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-const soilBg =
-  "https://www.twi-global.com/image-library/hero/istock-875007530-geotechnical-engineering.jpg";
-
 const AdminDashboard = () => {
-  const [pendingUsers, setPendingUsers] = useState([]);
+  const [allUsers, setAllUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [alert, setAlert] = useState({ show: false, message: '', type: 'info' });
   const [editId, setEditId] = useState(null);
   const [editStatus, setEditStatus] = useState('');
   const [isDark, setIsDark] = useState(localStorage.getItem('theme') === 'dark');
   const [deleteModal, setDeleteModal] = useState({ show: false, userId: null, userName: '', userRole: '' });
+  const [activeTab, setActiveTab] = useState('all'); // all, pending, approved, declined, admins
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetchPendingUsers();
+    fetchAllUsers();
     // eslint-disable-next-line
   }, []);
 
@@ -39,16 +37,17 @@ const AdminDashboard = () => {
     setAlert({ show: false, message: '', type: 'info' });
   };
 
-  const fetchPendingUsers = async () => {
+  const fetchAllUsers = async () => {
     setLoading(true);
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, full_name, role, status');
+      .select('id, full_name, role, status')
+      .order('created_at', { ascending: false });
     if (error) {
       showAlert('Error fetching users.', 'error');
-      setPendingUsers([]);
+      setAllUsers([]);
     } else {
-      setPendingUsers(data || []);
+      setAllUsers(data || []);
     }
     setLoading(false);
   };
@@ -61,7 +60,7 @@ const AdminDashboard = () => {
     } else {
       showAlert('Account approved successfully!', 'success');
     }
-    await fetchPendingUsers();
+    await fetchAllUsers();
     setLoading(false);
   };
 
@@ -73,27 +72,24 @@ const AdminDashboard = () => {
     } else {
       showAlert('Account declined.', 'warning');
     }
-    await fetchPendingUsers();
+    await fetchAllUsers();
     setLoading(false);
   };
 
-  // Delete user except admin accounts (call backend to remove auth user)
   const handleDeleteClick = (id, role, fullName) => {
     if (role === 'admin') {
       showAlert("You can't delete an admin account.", 'error');
       return;
     }
-    // Show custom modal instead of browser confirm
     setDeleteModal({ show: true, userId: id, userName: fullName, userRole: role });
   };
 
   const confirmDelete = async () => {
-    const { userId, userRole } = deleteModal;
+    const { userId } = deleteModal;
     setDeleteModal({ show: false, userId: null, userName: '', userRole: '' });
     setLoading(true);
 
     try {
-      // get current session token to prove requester identity
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
       if (!token) {
@@ -122,7 +118,7 @@ const AdminDashboard = () => {
       console.error(err);
       showAlert('Failed to delete account.', 'error');
     } finally {
-      await fetchPendingUsers();
+      await fetchAllUsers();
       setLoading(false);
     }
   };
@@ -131,7 +127,6 @@ const AdminDashboard = () => {
     setDeleteModal({ show: false, userId: null, userName: '', userRole: '' });
   };
 
-  // Edit user status
   const handleEdit = (id, currentStatus) => {
     setEditId(id);
     setEditStatus(currentStatus);
@@ -146,7 +141,7 @@ const AdminDashboard = () => {
       showAlert('Status updated successfully!', 'success');
     }
     setEditId(null);
-    await fetchPendingUsers();
+    await fetchAllUsers();
     setLoading(false);
   };
 
@@ -191,16 +186,168 @@ const AdminDashboard = () => {
 
   const alertStyles = getAlertStyles();
 
+  // Filter users based on active tab
+  const getFilteredUsers = () => {
+    switch (activeTab) {
+      case 'pending':
+        return allUsers.filter(user => user.status === 'PENDING');
+      case 'approved':
+        return allUsers.filter(user => user.status === 'APPROVED' && user.role !== 'admin');
+      case 'declined':
+        return allUsers.filter(user => user.status === 'DECLINED');
+      case 'admins':
+        return allUsers.filter(user => user.role === 'admin');
+      default:
+        return allUsers;
+    }
+  };
+
+  const filteredUsers = getFilteredUsers();
+
+  // Count statistics
+  const stats = {
+    total: allUsers.length,
+    pending: allUsers.filter(u => u.status === 'PENDING').length,
+    approved: allUsers.filter(u => u.status === 'APPROVED' && u.role !== 'admin').length,
+    declined: allUsers.filter(u => u.status === 'DECLINED').length,
+    admins: allUsers.filter(u => u.role === 'admin').length,
+  };
+
+  const renderUserTable = (users) => {
+    if (users.length === 0) {
+      return (
+        <div className="text-center text-gray-600 dark:text-gray-400 py-12">
+          <svg className="w-16 h-16 mx-auto text-gray-400 dark:text-gray-500 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+          </svg>
+          <p className="text-lg font-medium">No users found</p>
+          <p className="text-sm mt-1">Try selecting a different category</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="overflow-x-auto">
+        <table className="w-full table-auto border border-amber-400 dark:border-amber-600 rounded-xl shadow-lg">
+          <thead>
+            <tr className="bg-amber-100 dark:bg-amber-900/50">
+              <th className="px-5 py-4 border-b text-left font-semibold text-gray-700 dark:text-gray-200">Full Name</th>
+              <th className="px-5 py-4 border-b text-left font-semibold text-gray-700 dark:text-gray-200">Role</th>
+              <th className="px-5 py-4 border-b text-left font-semibold text-gray-700 dark:text-gray-200">Status</th>
+              <th className="px-5 py-4 border-b text-left font-semibold text-gray-700 dark:text-gray-200">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-amber-200 dark:divide-amber-800">
+            {users.map(user => (
+              <tr key={user.id} className="bg-white dark:bg-gray-800/50 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors">
+                <td className="px-5 py-4 text-gray-800 dark:text-gray-200">
+                  {user.full_name || <span className="italic text-gray-400">No name</span>}
+                </td>
+                <td className="px-5 py-4">
+                  <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold ${
+                    user.role === 'admin'
+                      ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300'
+                      : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                  }`}>
+                    {user.role === 'admin' && <Shield className="w-3 h-3" />}
+                    {user.role}
+                  </span>
+                </td>
+                <td className="px-5 py-4">
+                  {editId === user.id ? (
+                    <select
+                      value={editStatus}
+                      onChange={e => setEditStatus(e.target.value)}
+                      className="p-2 rounded-lg border border-amber-400 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    >
+                      <option value="PENDING">PENDING</option>
+                      <option value="APPROVED">APPROVED</option>
+                      <option value="DECLINED">DECLINED</option>
+                    </select>
+                  ) : (
+                    <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold ${
+                      user.status === 'APPROVED'
+                        ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                        : user.status === 'DECLINED'
+                        ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
+                        : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300'
+                    }`}>
+                      {user.status === 'APPROVED' && <CheckCircle className="w-3 h-3" />}
+                      {user.status === 'DECLINED' && <XCircle className="w-3 h-3" />}
+                      {user.status === 'PENDING' && <AlertCircle className="w-3 h-3" />}
+                      {user.status}
+                    </span>
+                  )}
+                </td>
+                <td className="px-5 py-4">
+                  <div className="flex gap-2 flex-wrap">
+                    {editId === user.id ? (
+                      <>
+                        <button
+                          onClick={() => handleEditSave(user.id)}
+                          className="px-3 py-1.5 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors font-medium"
+                          disabled={loading}
+                        >
+                          Save
+                        </button>
+                        <button
+                          onClick={handleEditCancel}
+                          className="px-3 py-1.5 bg-gray-400 text-white text-sm rounded-lg hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-400 transition-colors font-medium"
+                          disabled={loading}
+                        >
+                          Cancel
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        {user.status === 'PENDING' && (
+                          <>
+                            <button
+                              onClick={() => handleApprove(user.id)}
+                              className="px-3 py-1.5 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors font-medium"
+                              disabled={loading}
+                            >
+                              Approve
+                            </button>
+                            <button
+                              onClick={() => handleDecline(user.id)}
+                              className="px-3 py-1.5 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors font-medium"
+                              disabled={loading}
+                            >
+                              Decline
+                            </button>
+                          </>
+                        )}
+                        {user.status !== 'PENDING' && user.role !== 'admin' && (
+                          <button
+                            onClick={() => handleDeleteClick(user.id, user.role, user.full_name)}
+                            className="px-3 py-1.5 bg-gray-600 text-white text-sm rounded-lg hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors font-medium"
+                            disabled={loading}
+                          >
+                            Delete
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleEdit(user.id, user.status)}
+                          className="px-3 py-1.5 bg-amber-600 text-white text-sm rounded-lg hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 transition-colors font-medium flex items-center gap-1"
+                          disabled={loading}
+                        >
+                          <Edit2 className="w-3 h-3" /> Edit
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  };
+
   return (
-    <div
-      className="min-h-screen bg-gradient-to-b from-amber-200 to-green-100 dark:from-gray-900 dark:to-green-900 text-gray-900 dark:text-gray-100 transition-colors"
-      style={{
-        backgroundImage: `url(${soilBg})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundBlendMode: 'multiply'
-      }}
-    >
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 dark:from-gray-900 dark:via-gray-900 dark:to-slate-900 text-gray-800 dark:text-gray-100 transition-colors duration-300">
       {/* Delete Confirmation Modal */}
       {deleteModal.show && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
@@ -250,7 +397,6 @@ const AdminDashboard = () => {
             <button
               onClick={closeAlert}
               className="hover:bg-black/10 dark:hover:bg-white/10 rounded p-1 transition-colors"
-              aria-label="Close alert"
             >
               <X className="w-4 h-4" />
             </button>
@@ -259,175 +405,133 @@ const AdminDashboard = () => {
       )}
 
       {/* Header */}
-      <header className="bg-white/90 dark:bg-gray-800/90 shadow px-6 py-4 flex justify-between items-center border-b border-amber-700" style={{ backdropFilter: 'blur(2px)' }}>
-        <div className="flex items-center gap-2">
-          <svg width="36" height="36" fill="none" viewBox="0 0 48 48">
+      <header className="bg-white/95 dark:bg-gray-800/95 shadow px-8 py-6 flex justify-between items-center border-b border-amber-700 transition-all duration-300" style={{ backdropFilter: 'blur(4px)' }}>
+        <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/admin-home')}>
+          <svg width="44" height="44" fill="none" viewBox="0 0 48 48">
             <ellipse cx="24" cy="40" rx="18" ry="6" fill="#A0522D" />
             <ellipse cx="24" cy="34" rx="14" ry="5" fill="#8B5E3C" />
             <ellipse cx="24" cy="28" rx="10" ry="4" fill="#C2B280" />
           </svg>
-          <span className="text-2xl font-bold text-amber-900 dark:text-amber-200 font-serif">
+          <h1 className="text-3xl font-bold text-amber-900 dark:text-amber-200 font-serif">
             Admin Portal
-          </span>
+          </h1>
         </div>
         <div className="flex items-center gap-3">
           <button
             onClick={toggleTheme}
-            className="p-2 rounded-full hover:bg-amber-100 dark:hover:bg-amber-900 text-amber-700 dark:text-amber-200 focus:outline-none focus:ring-2 focus:ring-amber-400"
-            aria-label="Toggle theme"
+            className="p-3 rounded-full hover:bg-amber-200 dark:hover:bg-amber-800 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 transition-colors duration-300"
             title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
           >
-            {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            {isDark ? <Sun className="w-6 h-6" /> : <Moon className="w-6 h-6" />}
           </button>
           <button
             onClick={handleLogout}
-            className="p-2 rounded-full hover:bg-red-100 dark:hover:bg-red-800 text-red-600 dark:text-red-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
-            aria-label="Log out"
+            className="p-3 rounded-full hover:bg-red-100 dark:hover:bg-red-800 text-red-600 dark:text-red-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-colors duration-300"
           >
-            <LogOut className="w-5 h-5" />
+            <LogOut className="w-6 h-6" />
           </button>
         </div>
       </header>
 
-      <div className="max-w-4xl mx-auto mt-16 p-8 bg-white/90 dark:bg-gray-800/90 rounded-2xl shadow-2xl border border-amber-700" style={{ backdropFilter: 'blur(2px)' }}>
-        <h2 className="text-3xl font-bold mb-6 text-amber-900 dark:text-amber-200 font-serif text-center">
-          Admin Dashboard
-        </h2>
-        <h3 className="text-xl font-semibold mb-4 text-green-800 dark:text-green-200 text-center">
-          Account Management
-        </h3>
-        
-        {loading ? (
-          <div className="flex justify-center items-center h-32">
-            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-amber-700"></div>
-            <span className="ml-3 text-gray-700 dark:text-gray-200">Loading...</span>
+      <main className="max-w-7xl mx-auto mt-12 px-4 pb-12">
+        {/* Statistics Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
+          <button
+            onClick={() => setActiveTab('all')}
+            className={`p-6 rounded-2xl shadow-xl transition-all duration-300 ${
+              activeTab === 'all'
+                ? 'bg-blue-600 dark:bg-blue-700 text-white scale-105'
+                : 'bg-white/95 dark:bg-gray-800/95 hover:scale-105'
+            }`}
+            style={{ backdropFilter: 'blur(4px)' }}
+          >
+            <Users className="w-8 h-8 mb-2" />
+            <p className="text-3xl font-bold">{stats.total}</p>
+            <p className="text-sm font-medium opacity-90">Total Users</p>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('pending')}
+            className={`p-6 rounded-2xl shadow-xl transition-all duration-300 ${
+              activeTab === 'pending'
+                ? 'bg-yellow-600 dark:bg-yellow-700 text-white scale-105'
+                : 'bg-white/95 dark:bg-gray-800/95 hover:scale-105'
+            }`}
+            style={{ backdropFilter: 'blur(4px)' }}
+          >
+            <AlertCircle className="w-8 h-8 mb-2" />
+            <p className="text-3xl font-bold">{stats.pending}</p>
+            <p className="text-sm font-medium opacity-90">Pending</p>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('approved')}
+            className={`p-6 rounded-2xl shadow-xl transition-all duration-300 ${
+              activeTab === 'approved'
+                ? 'bg-green-600 dark:bg-green-700 text-white scale-105'
+                : 'bg-white/95 dark:bg-gray-800/95 hover:scale-105'
+            }`}
+            style={{ backdropFilter: 'blur(4px)' }}
+          >
+            <UserCheck className="w-8 h-8 mb-2" />
+            <p className="text-3xl font-bold">{stats.approved}</p>
+            <p className="text-sm font-medium opacity-90">Approved</p>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('declined')}
+            className={`p-6 rounded-2xl shadow-xl transition-all duration-300 ${
+              activeTab === 'declined'
+                ? 'bg-red-600 dark:bg-red-700 text-white scale-105'
+                : 'bg-white/95 dark:bg-gray-800/95 hover:scale-105'
+            }`}
+            style={{ backdropFilter: 'blur(4px)' }}
+          >
+            <UserX className="w-8 h-8 mb-2" />
+            <p className="text-3xl font-bold">{stats.declined}</p>
+            <p className="text-sm font-medium opacity-90">Declined</p>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('admins')}
+            className={`p-6 rounded-2xl shadow-xl transition-all duration-300 ${
+              activeTab === 'admins'
+                ? 'bg-purple-600 dark:bg-purple-700 text-white scale-105'
+                : 'bg-white/95 dark:bg-gray-800/95 hover:scale-105'
+            }`}
+            style={{ backdropFilter: 'blur(4px)' }}
+          >
+            <Shield className="w-8 h-8 mb-2" />
+            <p className="text-3xl font-bold">{stats.admins}</p>
+            <p className="text-sm font-medium opacity-90">Admins</p>
+          </button>
+        </div>
+
+        {/* User Table */}
+        <div className="bg-white/95 dark:bg-gray-800/95 rounded-2xl shadow-xl border border-amber-700 dark:border-amber-600 p-8 transition-all duration-300" style={{ backdropFilter: 'blur(4px)' }}>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-3xl font-bold text-amber-900 dark:text-amber-200">
+              {activeTab === 'all' && 'All Users'}
+              {activeTab === 'pending' && 'Pending Accounts'}
+              {activeTab === 'approved' && 'Approved Users'}
+              {activeTab === 'declined' && 'Declined Accounts'}
+              {activeTab === 'admins' && 'Administrator Accounts'}
+            </h2>
+            <span className="text-sm text-gray-600 dark:text-gray-400">
+              Showing {filteredUsers.length} {filteredUsers.length === 1 ? 'user' : 'users'}
+            </span>
           </div>
-        ) : pendingUsers.length === 0 ? (
-          <div className="text-center text-gray-600 dark:text-gray-400 py-8">
-            <svg className="w-16 h-16 mx-auto text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            <p className="mt-2">No accounts found.</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full table-auto border border-amber-400 dark:border-amber-600 rounded-xl shadow divide-y divide-amber-200 dark:divide-amber-800">
-              <thead>
-                <tr className="bg-amber-100 dark:bg-amber-900">
-                  <th className="px-5 py-3 border-b text-left">Full Name</th>
-                  <th className="px-5 py-3 border-b text-left">Role</th>
-                  <th className="px-5 py-3 border-b text-left">Status</th>
-                  <th className="px-5 py-3 border-b text-left">Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pendingUsers.map(user => (
-                  <tr key={user.id} className="odd:bg-amber-50 even:bg-white dark:odd:bg-gray-800 dark:even:bg-gray-900 hover:bg-amber-100 dark:hover:bg-amber-800 transition">
-                    <td className="px-5 py-3">{user.full_name || <span className="italic text-gray-400">No name</span>}</td>
-                    <td className="px-5 py-3 capitalize">{user.role}</td>
-                    <td className="px-5 py-3">
-                      {editId === user.id ? (
-                        <select
-                          value={editStatus}
-                          onChange={e => setEditStatus(e.target.value)}
-                          className="p-1 rounded border border-amber-400 dark:bg-gray-700 dark:text-white"
-                        >
-                          <option value="PENDING">PENDING</option>
-                          <option value="APPROVED">APPROVED</option>
-                          <option value="DECLINED">DECLINED</option>
-                        </select>
-                      ) : (
-                        <span className={
-                          user.status === 'APPROVED'
-                            ? 'text-green-700 font-semibold'
-                            : user.status === 'DECLINED'
-                            ? 'text-red-600 font-semibold'
-                            : 'text-amber-700 font-semibold'
-                        }>
-                          {user.status}
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-5 py-3 flex gap-2">
-                    {editId === user.id ? (
-                        <>
-                        <button
-                            onClick={() => handleEditSave(user.id)}
-                            className="px-3 py-1 bg-green-700 text-white rounded hover:bg-green-800 focus:outline-none focus:ring-2 focus:ring-green-500"
-                            disabled={loading}
-                        >
-                            Save
-                        </button>
-                        <button
-                            onClick={handleEditCancel}
-                            className="px-3 py-1 bg-gray-400 text-white rounded hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-400"
-                            disabled={loading}
-                        >
-                            Cancel
-                        </button>
-                        </>
-                    ) : (
-                        <>
-                        {user.status === 'PENDING' && (
-                            <>
-                            <button
-                                onClick={() => handleApprove(user.id)}
-                                className="px-4 py-1 bg-green-700 text-white rounded hover:bg-green-800 focus:outline-none focus:ring-2 focus:ring-green-500"
-                                aria-label={`Approve ${user.full_name || user.id}`}
-                                disabled={loading}
-                            >
-                                Approve
-                            </button>
-                            <button
-                                onClick={() => handleDecline(user.id)}
-                                className="px-4 py-1 bg-red-600 text-white rounded hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
-                                aria-label={`Decline ${user.full_name || user.id}`}
-                                disabled={loading}
-                            >
-                                Decline
-                            </button>
-                            </>
-                        )}
-                        {user.status !== 'PENDING' && user.role !== 'admin' && (
-                            <>
-                            <button
-                                onClick={() => handleDeleteClick(user.id, user.role, user.full_name)}
-                                className="px-4 py-1 bg-gray-500 text-white rounded hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-400"
-                                aria-label={`Delete ${user.full_name || user.id}`}
-                                disabled={loading}
-                            >
-                                Delete
-                            </button>
-                            <button
-                                onClick={() => handleEdit(user.id, user.status)}
-                                className="px-4 py-1 bg-amber-500 text-white rounded hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-400 flex items-center gap-1"
-                                aria-label={`Edit status of ${user.full_name || user.id}`}
-                                disabled={loading}
-                            >
-                                <Edit2 className="w-4 h-4" /> Edit
-                            </button>
-                            </>
-                        )}
-                        {user.status !== 'PENDING' && user.role === 'admin' && (
-                            <button
-                            onClick={() => handleEdit(user.id, user.status)}
-                            className="px-4 py-1 bg-amber-500 text-white rounded hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-400 flex items-center gap-1"
-                            aria-label={`Edit status of ${user.full_name || user.id}`}
-                            disabled={loading}
-                            >
-                            <Edit2 className="w-4 h-4" /> Edit
-                            </button>
-                        )}
-                        </>
-                    )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+
+          {loading ? (
+            <div className="flex flex-col justify-center items-center h-64">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-amber-600"></div>
+              <span className="mt-4 text-lg text-gray-700 dark:text-gray-200">Loading users...</span>
+            </div>
+          ) : (
+            renderUserTable(filteredUsers)
+          )}
+        </div>
+      </main>
     </div>
   );
 };
