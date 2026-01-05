@@ -7,6 +7,8 @@ import EngineerHome from './pages/EngineerHome';
 import EngineerAnalysisHistory from './pages/EngineerAnalysisHistory';
 import ExpertHome from './pages/ExpertHome';
 import AdminDashboard from './pages/AdminDashboard';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 
 function App() {
   return (
@@ -15,6 +17,8 @@ function App() {
         <Route path="/" element={<Login />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/engineer-home" element={<EngineerHome />} />
         <Route path="/engineer-history" element={<EngineerAnalysisHistory />} />
         <Route path="/soil-analysis" element={<SoilAnalysis />} />

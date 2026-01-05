@@ -38,9 +38,16 @@ const Login = () => {
 
       if (profileError) throw profileError;
 
+      if (!data.user.email_confirmed_at) {
+        setError('Please verify your email before logging in.');
+        return;
+      }
+      
       if (profile.status !== 'APPROVED') {
         setError('Account pending approval by admin.');
-      } else if (profile.role === 'engineer') {
+        return;
+      }
+      if (profile.role === 'engineer') {
         navigate('/engineer-home');
       } else if (profile.role === 'expert') {
         navigate('/expert-home');
@@ -118,6 +125,12 @@ const Login = () => {
         </button>
 
         {error && <p className="text-red-600 mt-4 text-lg text-center">{error}</p>}
+
+        <p className="mt-4 text-center text-lg">
+  <Link to="/forgot-password" className="text-amber-700 hover:underline">
+    Forgot password?
+  </Link>
+</p>
 
         <p className="mt-6 text-center text-lg text-amber-700 dark:text-amber-200">
           Don’t have an account?{' '}

@@ -44,23 +44,26 @@ const Register = () => {
     e.preventDefault();
     setError('');
     setSuccess('');
-
+  
     if (!validatePassword(form.password)) {
       setError('Password does not meet requirements.');
       return;
     }
-
+  
     try {
       const { data, error: signUpError } = await supabase.auth.signUp({
         email: form.email,
         password: form.password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/login`
+        }
       });
-
+  
       if (signUpError) {
         setError(signUpError.message);
         return;
       }
-
+  
       if (data.user) {
         const { error: insertError } = await supabase.from('profiles').insert({
           id: data.user.id,
@@ -68,16 +71,17 @@ const Register = () => {
           role: form.role,
           status: 'PENDING'
         });
+  
         if (insertError) {
           setError(insertError.message);
           return;
         }
-        setSuccess('Registration successful! Please wait for admin approval before logging in.');
-
-        setTimeout(() => {
-          navigate('/');
-        }, 5000);
+  
+        setSuccess(
+          'Registration successful! Please check your email to verify your account. After verification, wait for admin approval.'
+        );
       }
+  
     } catch (err) {
       setError(err.message || 'Unexpected error during registration.');
     }
