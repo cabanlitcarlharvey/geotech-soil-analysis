@@ -6,13 +6,39 @@ const Login = () => {
   const [form, setForm] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [showAdminInfo, setShowAdminInfo] = useState(false);
+  const [checkingSession, setCheckingSession] = useState(true);
   const navigate = useNavigate();
 
+  // ✅ SIMPLIFIED: Only set theme, let ProtectedRoute handle session
   useEffect(() => {
     const theme = localStorage.getItem('theme') || 'light';
     document.documentElement.classList.toggle('dark', theme === 'dark');
-  }, []);
+    
+    // Quick check: if already logged in, redirect
+    const quickCheck = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role, status')
+          .eq('id', session.user.id)
+          .single();
+
+        if (profile?.status === 'APPROVED') {
+          if (profile.role === 'admin') {
+            navigate('/admin-dashboard', { replace: true });
+          } else if (profile.role === 'engineer') {
+            navigate('/engineer-home', { replace: true });
+          } else if (profile.role === 'expert') {
+            navigate('/expert-home', { replace: true });
+          }
+        }
+      }
+      setCheckingSession(false);
+    };
+    
+    quickCheck();
+  }, [navigate]);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -28,6 +54,7 @@ const Login = () => {
         email: form.email,
         password: form.password
       });
+      
       if (signInError) throw signInError;
 
       const { data: profile, error: profileError } = await supabase
@@ -40,21 +67,26 @@ const Login = () => {
 
       if (!data.user.email_confirmed_at) {
         setError('Please verify your email before logging in.');
+        await supabase.auth.signOut(); // Sign out unverified user
         return;
       }
       
       if (profile.status !== 'APPROVED') {
         setError('Account pending approval by admin.');
+        await supabase.auth.signOut(); // Sign out unapproved user
         return;
       }
+
+      // Redirect based on role
       if (profile.role === 'engineer') {
-        navigate('/engineer-home');
+        navigate('/engineer-home', { replace: true });
       } else if (profile.role === 'expert') {
-        navigate('/expert-home');
+        navigate('/expert-home', { replace: true });
       } else if (profile.role === 'admin') {
-        navigate('/admin-dashboard');
+        navigate('/admin-dashboard', { replace: true });
       } else {
         setError('User role not recognized.');
+        await supabase.auth.signOut();
       }
 
     } catch (err) {
@@ -63,6 +95,18 @@ const Login = () => {
       setLoading(false);
     }
   };
+
+  // Show loading spinner while checking session
+  if (checkingSession) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 dark:from-gray-900 dark:via-gray-900 dark:to-slate-900">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-amber-600 mx-auto mb-4"></div>
+          <p className="text-xl text-amber-900 dark:text-amber-200 font-semibold">Checking session...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 dark:from-gray-900 dark:via-gray-900 dark:to-slate-900 text-gray-800 dark:text-gray-100 transition-colors duration-300">
@@ -94,9 +138,10 @@ const Login = () => {
             id="email"
             name="email"
             type="email"
+            value={form.email}
             onChange={handleChange}
-            placeholder="Email"
-            className="w-full p-4 text-xl border border-amber-400 rounded-lg dark:bg-gray-700 dark:text-white dark:border-amber-600 bg-amber-50"
+            placeholder="your.email@example.com"
+            className="w-full p-4 text-xl border border-amber-400 rounded-lg dark:bg-gray-700 dark:text-white dark:border-amber-600 bg-amber-50 focus:outline-none focus:ring-2 focus:ring-amber-500 transition-all"
             required
           />
         </div>
@@ -109,9 +154,10 @@ const Login = () => {
             id="password"
             type="password"
             name="password"
+            value={form.password}
             onChange={handleChange}
-            placeholder="Password"
-            className="w-full p-4 text-xl border border-amber-400 rounded-lg dark:bg-gray-700 dark:text-white dark:border-amber-600 bg-amber-50"
+            placeholder="••••••••"
+            className="w-full p-4 text-xl border border-amber-400 rounded-lg dark:bg-gray-700 dark:text-white dark:border-amber-600 bg-amber-50 focus:outline-none focus:ring-2 focus:ring-amber-500 transition-all"
             required
           />
         </div>
@@ -119,25 +165,41 @@ const Login = () => {
         <button
           type="submit"
           disabled={loading}
-          className={`w-full p-4 rounded-lg font-semibold text-white text-xl ${loading ? 'bg-amber-400' : 'bg-amber-700 hover:bg-amber-800'}`}
+          className={`w-full p-4 rounded-lg font-semibold text-white text-xl transition-all duration-300 ${
+            loading 
+              ? 'bg-amber-400 cursor-not-allowed' 
+              : 'bg-amber-700 hover:bg-amber-800 transform hover:scale-[1.02]'
+          }`}
         >
           {loading ? 'Logging in...' : 'Login'}
         </button>
 
-        {error && <p className="text-red-600 mt-4 text-lg text-center">{error}</p>}
+        {error && (
+          <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/30 border-l-4 border-red-500 rounded">
+            <p className="text-red-600 dark:text-red-300 text-base">{error}</p>
+          </div>
+        )}
 
-        <p className="mt-4 text-center text-lg">
-  <Link to="/forgot-password" className="text-amber-700 hover:underline">
-    Forgot password?
-  </Link>
-</p>
+        <div className="mt-6 text-center space-y-2">
+          <p className="text-lg">
+            <Link 
+              to="/forgot-password" 
+              className="text-amber-700 dark:text-amber-300 hover:underline font-medium"
+            >
+              Forgot password?
+            </Link>
+          </p>
 
-        <p className="mt-6 text-center text-lg text-amber-700 dark:text-amber-200">
-          Don’t have an account?{' '}
-          <Link to="/register" className="text-amber-800 hover:underline dark:text-amber-300">
-            Register
-          </Link>
-        </p>
+          <p className="text-lg text-amber-700 dark:text-amber-200">
+            Don't have an account?{' '}
+            <Link 
+              to="/register" 
+              className="text-amber-800 dark:text-amber-300 hover:underline font-semibold"
+            >
+              Register
+            </Link>
+          </p>
+        </div>
       </form>
     </div>
   );
