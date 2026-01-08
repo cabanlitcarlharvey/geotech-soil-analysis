@@ -1,3 +1,5 @@
+from dotenv import load_dotenv
+from pathlib import Path
 import os
 from fastapi import FastAPI, HTTPException, Request, Header, Response
 from fastapi.middleware.cors import CORSMiddleware
@@ -22,6 +24,10 @@ class CommandRequest(BaseModel):
     image_soil_type: Optional[str] = None
     image_data: Optional[str] = None
     location: Optional[str] = None
+
+# Load backend/.env explicitly
+ENV_PATH = Path(__file__).resolve().parent.parent / ".env"
+load_dotenv(dotenv_path=ENV_PATH)
 
 # ========================================
 # GLOBAL VARIABLES (Initialisation)
@@ -103,19 +109,19 @@ async def log_exceptions(request: Request, call_next):
 # 🛑 FIX: Basahin ang variables mula sa Environment, hindi hardcoded!
 # ------------------------------------------------------------------
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
-SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
+SUPABASE_SERVICE_ROLE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
 # ------------------------------------------------------------------
 
 # Debugging print statement para i-verify
 print(f"DEBUG: SUPABASE_URL (ENV): {SUPABASE_URL}")
-if SUPABASE_KEY:
-    print(f"DEBUG: SUPABASE_KEY (ENV) First 5 chars: {SUPABASE_KEY[:5]}...")
+if SUPABASE_SERVICE_ROLE_KEY:
+    print(f"DEBUG: SUPABASE_SERVICE_ROLE_KEY (ENV) First 5 chars: {SUPABASE_SERVICE_ROLE_KEY[:5]}...")
 else:
     # Mag-throw ng error kung hindi na-load ang key
-    raise ValueError("SUPABASE_KEY environment variable not loaded!")
+    raise ValueError("SUPABASE_SERVICE_ROLE_KEY environment variable not loaded!")
 
 
-if not SUPABASE_URL or not SUPABASE_KEY:
+if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
     # Handling para sa development kung wala talagang .env, pero sa Docker dapat loaded
     print("FATAL: Supabase credentials are not loaded from environment variables!")
     # Maglagay ng default value kung kailangan, pero mas maganda kung mag-e-exit ang app
@@ -125,7 +131,7 @@ if not SUPABASE_URL or not SUPABASE_KEY:
 
 else:
     # Create the client ONLY if the variables are loaded
-    supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+    supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
 # Test Supabase connection
 try:

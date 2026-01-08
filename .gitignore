@@ -3,6 +3,7 @@ node_modules/
 frontend/node_modules/
 backend/__pycache__/
 
+
 # Build outputs
 dist/
 build/
@@ -11,7 +12,8 @@ build/
 # Environment
 .env
 .env.local
-
+backend/.env
+frontend/.env
 # OS
 .DS_Store
 Thumbs.db
