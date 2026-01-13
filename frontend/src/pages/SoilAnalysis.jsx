@@ -1,11 +1,14 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
-import { Sun, Moon, LogOut, Home, History, CheckCircle, RotateCcw, Beaker } from 'lucide-react';
+import { CheckCircle, RotateCcw } from 'lucide-react';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import { Pie } from 'react-chartjs-2';
 import '../App.css';
 import { API_URL } from '../config';
+
+// Import shared layout
+import PageLayout from '../components/shared/PageLayout';
 
 // Import separated components
 import LocationInput from '../components/SoilAnalysis/LocationInput';
@@ -41,7 +44,6 @@ function SoilAnalysis() {
   const [jwtToken, setJwtToken] = useState(null);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [capturedImageData, setCapturedImageData] = useState(null);
-  
 
   const steps = [
     { label: 'Location', status: 'Enter location for soil sample...' },
@@ -67,7 +69,7 @@ function SoilAnalysis() {
   };
 
   useEffect(() => {
-    document.documentElement.classList.toggle('dark', isDark);
+    setIsDark(localStorage.getItem('theme') === 'dark');
 
     const getSession = async () => {
       try {
@@ -105,7 +107,7 @@ function SoilAnalysis() {
         stream.getTracks().forEach(track => track.stop());
       }
     };
-  }, [isDark, stream, navigate]);
+  }, [navigate]);
 
   useEffect(() => {
     const index = steps.findIndex(s => s.status === step);
@@ -290,7 +292,7 @@ function SoilAnalysis() {
         setPredictionStatus(null);
         setPredictionProbabilities(null);
         setCapturedImageData(null);
-        setFullLocation('');  // ✅ Only this for location
+        setFullLocation('');
         setIsCameraActive(false);
         setSaveStatus('');
         setStep('Enter location for soil sample...');
@@ -299,19 +301,6 @@ function SoilAnalysis() {
       setError(`Error: ${error.message}`);
       setSaveStatus('');
     }
-  };
-
-  const toggleTheme = () => {
-    const newTheme = isDark ? 'light' : 'dark';
-    localStorage.setItem('theme', newTheme);
-    document.documentElement.classList.toggle('dark', newTheme === 'dark');
-    setIsDark(!isDark);
-  };
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate('/login');
-    stopCamera();
   };
 
   const pieChartData = {
@@ -335,37 +324,8 @@ function SoilAnalysis() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 dark:from-gray-900 dark:via-gray-900 dark:to-slate-900 text-gray-800 dark:text-gray-100 transition-colors duration-300">
-      {/* Header */}
-      <header className="bg-white/95 dark:bg-gray-800/95 shadow px-8 py-6 flex justify-between items-center border-b border-amber-700 transition-all duration-300" style={{ backdropFilter: 'blur(4px)' }}>
-        <div className="flex items-center gap-3 cursor-pointer group transition-transform duration-300 hover:scale-105" onClick={() => navigate('/engineer-home')}>
-          <svg width="44" height="44" fill="none" viewBox="0 0 48 48">
-            <ellipse cx="24" cy="40" rx="18" ry="6" fill="#A0522D" />
-            <ellipse cx="24" cy="34" rx="14" ry="5" fill="#8B5E3C" />
-            <ellipse cx="24" cy="28" rx="10" ry="4" fill="#C2B280" />
-          </svg>
-          <h1 className="text-3xl font-bold text-amber-900 dark:text-amber-200 font-serif">Geotech Staff Portal</h1>
-        </div>
-        <div className="flex items-center gap-3">
-          <button onClick={toggleTheme} className="p-3 rounded-full hover:bg-amber-200 dark:hover:bg-amber-800 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 transition-colors duration-300">
-            {isDark ? <Sun className="w-6 h-6" /> : <Moon className="w-6 h-6" />}
-          </button>
-          <button onClick={() => navigate('/engineer-home')} className="p-3 rounded-full hover:bg-amber-200 dark:hover:bg-amber-800 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 transition-colors duration-300">
-            <Home className="w-6 h-6" />
-          </button>
-          <button onClick={() => window.location.reload()} className="p-3 rounded-full hover:bg-blue-200 dark:hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors duration-300">
-            <Beaker className="w-6 h-6" />
-          </button>
-          <button onClick={() => navigate('/engineer-history')} className="p-3 rounded-full hover:bg-green-200 dark:hover:bg-green-800 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors duration-300">
-            <History className="w-6 h-6" />
-          </button>
-          <button onClick={handleLogout} className="p-3 rounded-full hover:bg-red-100 dark:hover:bg-red-800 text-red-600 dark:text-red-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-colors duration-300">
-            <LogOut className="w-6 h-6" />
-          </button>
-        </div>
-      </header>
-
-      <main className="flex flex-col lg:flex-row gap-6 max-w-7xl mx-auto mt-12 px-4 pb-12">
+    <PageLayout currentPage="analysis">
+      <div className="flex flex-col lg:flex-row gap-6 max-w-7xl mx-auto">
         {/* Progress Sidebar */}
         <aside className="w-full lg:w-1/4">
           <div className="bg-white/95 dark:bg-gray-800/95 rounded-2xl shadow-xl border border-amber-700 dark:border-amber-600 p-6 transition-all duration-300" style={{ backdropFilter: 'blur(4px)' }}>
@@ -381,7 +341,6 @@ function SoilAnalysis() {
           </div>
         </aside>
 
-        {/* Main Content */}
         <section className="w-full lg:w-3/4">
           <div className="bg-white/95 dark:bg-gray-800/95 rounded-2xl shadow-xl border border-amber-700 dark:border-amber-600 p-8 transition-all duration-300" style={{ backdropFilter: 'blur(4px)' }}>
             <h2 className="text-3xl font-bold mb-2 text-amber-900 dark:text-amber-200">Soil Classification Analysis</h2>
@@ -535,8 +494,8 @@ function SoilAnalysis() {
             )}
           </div>
         </section>
-      </main>
-    </div>
+      </div>
+    </PageLayout>
   );
 }
 
