@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
-import { CheckCircle, RotateCcw } from 'lucide-react';
+import { CheckCircle, RotateCcw, ArrowLeft } from 'lucide-react';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import { Pie } from 'react-chartjs-2';
 import '../App.css';
@@ -53,6 +53,23 @@ function SoilAnalysis() {
     { label: 'Sand Weight', status: 'Place sand fraction, press 3...' },
     { label: 'Results', status: 'Done. Press R to reset' },
   ];
+
+  const handleBackStep = () => {
+    const currentIndex = steps.findIndex((s) => s.status === step);
+    if (currentIndex > 0) {
+      // Optional: pag nasa capture image, pwede mong i-stop ang camera
+      if (steps[currentIndex].label === 'Capture Image') {
+        stopCamera();
+        // kung gusto mong i‑clear din ang prediction/image, pwede mong i-uncomment:
+        // setImagePrediction(null);
+        // setPredictionConfidence(null);
+        // setPredictionStatus(null);
+        // setPredictionProbabilities(null);
+        // setCapturedImageData(null);
+      }
+      setStep(steps[currentIndex - 1].status);
+    }
+  };
 
   const getButtonStates = () => {
     const stepText = step.toLowerCase();
@@ -343,7 +360,23 @@ function SoilAnalysis() {
 
         <section className="w-full lg:w-3/4">
           <div className="bg-white/95 dark:bg-gray-800/95 rounded-2xl shadow-xl border border-amber-700 dark:border-amber-600 p-8 transition-all duration-300" style={{ backdropFilter: 'blur(4px)' }}>
-            <h2 className="text-3xl font-bold mb-2 text-amber-900 dark:text-amber-200">Soil Classification Analysis</h2>
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-3xl font-bold text-amber-900 dark:text-amber-200">
+                Soil Classification Analysis
+              </h2>
+              
+              {currentStepIndex > 0 && currentStepIndex < steps.length && (
+                <button
+                  type="button"
+                  onClick={handleBackStep}
+                  className="inline-flex items-center px-3 py-2 text-sm font-semibold rounded-lg border border-amber-600 text-amber-800 dark:text-amber-200 bg-white/80 dark:bg-gray-800 hover:bg-amber-50 dark:hover:bg-gray-700 transition-colors duration-200"
+                >
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Back
+                </button>
+              )}
+            </div>
+
             <p className="text-lg mb-6 text-gray-700 dark:text-gray-300">
               <span className="font-semibold text-green-800 dark:text-green-400">Current Step:</span> {step}
             </p>
