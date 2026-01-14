@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { useNavigate, Link } from 'react-router-dom';
+import { Eye, EyeOff } from 'lucide-react';
 
 const MIN_PASSWORD_LENGTH = 6;
 const MAX_PASSWORD_LENGTH = 12;
@@ -13,6 +14,7 @@ const Register = () => {
   const [success, setSuccess] = useState('');
   const [passwordErrors, setPasswordErrors] = useState([]);
   const [isPasswordValid, setIsPasswordValid] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -127,14 +129,27 @@ const Register = () => {
           <label className="block text-lg font-semibold text-amber-900 dark:text-amber-200 mb-2">
             Password
           </label>
-          <input
-            type="password"
-            name="password"
-            onChange={handleChange}
-            placeholder="Password"
-            className="w-full p-4 text-xl border border-amber-400 rounded-lg dark:bg-gray-700 dark:text-white dark:border-amber-600 bg-amber-50"
-            required
-          />
+
+          <div className="relative">
+            <input
+              type={showPassword ? 'text' : 'password'}
+              name="password"
+              value={form.password}
+              onChange={handleChange}
+              placeholder="Password"
+              className="w-full p-4 pr-12 text-xl border border-amber-400 rounded-lg dark:bg-gray-700 dark:text-white dark:border-amber-600 bg-amber-50"
+              required
+            />
+
+            <button
+              type="button"
+              onClick={() => setShowPassword((prev) => !prev)}
+              className="absolute inset-y-0 right-3 flex items-center text-amber-700 dark:text-amber-200 hover:text-amber-900 dark:hover:text-amber-100 focus:outline-none"
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
+            >
+              {showPassword ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
+            </button>
+          </div>
 
           <small className="block mt-2 text-base text-amber-800 dark:text-amber-200">
             Password must be {MIN_PASSWORD_LENGTH}-{MAX_PASSWORD_LENGTH} characters, include numbers and a special character.
