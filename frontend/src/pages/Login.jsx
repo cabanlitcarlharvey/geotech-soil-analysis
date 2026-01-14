@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { useNavigate, Link } from 'react-router-dom';
+import { Eye, EyeOff } from 'lucide-react';
 
 const Login = () => {
   const [form, setForm] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
 
   // ✅ SIMPLIFIED: Only set theme, let ProtectedRoute handle session
@@ -147,19 +149,34 @@ const Login = () => {
         </div>
 
         <div className="mb-6">
-          <label htmlFor="password" className="block text-lg font-semibold text-amber-900 dark:text-amber-200 mb-2">
+          <label
+            htmlFor="password"
+            className="block text-lg font-semibold text-amber-900 dark:text-amber-200 mb-2"
+          >
             Password
           </label>
-          <input
-            id="password"
-            type="password"
-            name="password"
-            value={form.password}
-            onChange={handleChange}
-            placeholder="••••••••"
-            className="w-full p-4 text-xl border border-amber-400 rounded-lg dark:bg-gray-700 dark:text-white dark:border-amber-600 bg-amber-50 focus:outline-none focus:ring-2 focus:ring-amber-500 transition-all"
-            required
-          />
+
+          <div className="relative">
+            <input
+              id="password"
+              type={showPassword ? 'text' : 'password'}
+              name="password"
+              value={form.password}
+              onChange={handleChange}
+              placeholder="••••••••"
+              className="w-full p-4 pr-12 text-xl border border-amber-400 rounded-lg dark:bg-gray-700 dark:text-white dark:border-amber-600 bg-amber-50 focus:outline-none focus:ring-2 focus:ring-amber-500 transition-all"
+              required
+            />
+
+            <button
+              type="button"
+              onClick={() => setShowPassword((prev) => !prev)}
+              className="absolute inset-y-0 right-3 flex items-center text-amber-700 dark:text-amber-200 hover:text-amber-900 dark:hover:text-amber-100 focus:outline-none"
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
+            >
+              {showPassword ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
+            </button>
+          </div>
         </div>
 
         <button
