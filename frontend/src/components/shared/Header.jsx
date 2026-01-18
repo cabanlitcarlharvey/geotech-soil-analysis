@@ -83,7 +83,7 @@ function Header({ isDark, toggleTheme, onLogout, currentPage = 'home' }) {
           aria-label="Toggle theme"
           title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
         >
-          {isDark ? <Sun className="w-6 h-6" /> : <Moon className="w-6 h-6" />}
+          {isDark ? <Moon className="w-6 h-6" /> : <Sun className="w-6 h-6" />}
         </button>
 
         {/* Navigation Buttons */}

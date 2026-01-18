@@ -430,7 +430,7 @@ const AdminDashboard = () => {
             className="p-3 rounded-full hover:bg-amber-200 dark:hover:bg-amber-800 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 transition-colors duration-300"
             title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
           >
-            {isDark ? <Sun className="w-6 h-6" /> : <Moon className="w-6 h-6" />}
+            {isDark ? <Moon className="w-6 h-6" /> : <Sun className="w-6 h-6" />}
           </button>
           <button
             onClick={handleLogout}
