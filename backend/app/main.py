@@ -157,45 +157,63 @@ CLASSES = ["Clay Sand", "Silty Sand"]
 print("Loading CNN model...")
 def load_model():
     global cnn_model, cnn_status
-    print(f"Attempting to load model from path: {CNN_MODEL_PATH}")
+    print(f"Attempting to load model from path: {CNN_MODEL_PATH}") # Debugging
     print(f"Is path existing? {os.path.exists(CNN_MODEL_PATH)}")
-    
     try:
-        # Try 1: Load with safe_mode=False
-        print("Attempt 1: Loading with safe_mode=False...")
+        # Add custom objects to handle version incompatibility
+        custom_objects = {
+            'BatchNormalization': tf.keras.layers.BatchNormalization,
+            'batch_normalization': tf.keras.layers.BatchNormalization,
+            'LayerNormalization': tf.keras.layers.LayerNormalization,
+            'layer_normalization': tf.keras.layers.LayerNormalization,
+            'Add': tf.keras.layers.Add,
+            'Concatenate': tf.keras.layers.Concatenate,
+            'DepthwiseConv2D': tf.keras.layers.DepthwiseConv2D,
+            'ZeroPadding2D': tf.keras.layers.ZeroPadding2D,
+            'GlobalAveragePooling2D': tf.keras.layers.GlobalAveragePooling2D,
+            'ReLU': tf.keras.layers.ReLU
+        }
+        
+        # Pilitin ang TensorFlow na i-load ang model nang hindi ito ki-nocompile ulit
         cnn_model = tf.keras.models.load_model(
             CNN_MODEL_PATH, 
+            custom_objects=custom_objects,
             compile=False,
-            safe_mode=False
+            safe_mode=False  # Important: try this
         )
+        
+        # Pagkatapos i-load, i-compile ito (dapat pareho sa training config)
         cnn_model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
-        cnn_status = "loaded"
-        print(f"✓ CNN model loaded successfully (Method 1)")
         
-    except Exception as e1:
-        print(f"⚠ Method 1 failed: {e1}")
+        # I-update ang global status variable
+        cnn_status = "loaded" 
         
-        try:
-            # Try 2: Load without compile
-            print("Attempt 2: Loading without compile...")
-            import tensorflow.keras as keras
-            cnn_model = keras.models.load_model(CNN_MODEL_PATH, compile=False)
-            cnn_status = "loaded"
-            print(f"✓ CNN model loaded successfully (Method 2)")
-            
-        except Exception as e2:
-            print(f"❌ All loading methods failed")
-            print(f"Error 1: {e1}")
-            print(f"Error 2: {e2}")
-            cnn_status = "model_loading_failed"
-            cnn_model = None
-    
-    if cnn_model is not None:
+        print(f"✓ CNN model loaded successfully")
         print(f"  Model architecture: {cnn_model.name}")
         print(f"  Input shape: {cnn_model.input_shape}")
         print(f"  Output shape: {cnn_model.output_shape}")
         print(f"  Confidence threshold: {CONFIDENCE_THRESHOLD}")
         print(f"  Classes: {CLASSES}")
+    except FileNotFoundError:
+        print(f"ERROR: CNN model not found at {CNN_MODEL_PATH}")
+        cnn_status = "file_not_found"
+    except Exception as e:
+        print(f"ERROR loading CNN model (TensorFlow issue): {e}")
+        import traceback
+        traceback.print_exc()
+        cnn_status = "model_loading_failed"
+        
+        # Try alternative loading method
+        print("\n⚠️  Trying alternative loading method...")
+        try:
+            # Try loading weights only if model architecture is known
+            cnn_model = create_model_from_weights()
+            if cnn_model:
+                cnn_model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+                cnn_status = "loaded_from_weights"
+                print("✓ Model loaded from weights successfully")
+        except Exception as e2:
+            print(f"Alternative loading also failed: {e2}")
 
 # ----------------------------------------
 # TAWAGIN ANG LOAD_MODEL AGAD! (Global Scope)
