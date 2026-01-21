@@ -160,8 +160,12 @@ def load_model():
     print(f"Attempting to load model from path: {CNN_MODEL_PATH}") # Debugging
     print(f"Is path existing? {os.path.exists(CNN_MODEL_PATH)}")
     try:
-        # Pilitin ang TensorFlow na i-load ang model nang hindi ito ki-nocompile ulit
-        cnn_model = tf.keras.models.load_model(CNN_MODEL_PATH, compile=False)
+        # 🔧 UPDATED: I-add ang safe_mode=False parameter
+        cnn_model = tf.keras.models.load_model(
+            CNN_MODEL_PATH, 
+            compile=False,
+            safe_mode=False  # ← I-add ito para ma-bypass ang batch_normalization issue
+        )
         
         # Pagkatapos i-load, i-compile ito (dapat pareho sa training config)
         cnn_model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
