@@ -215,7 +215,45 @@ def load_model():
         except Exception as e2:
             print(f"Alternative loading also failed: {e2}")
 
-
+def create_model_from_weights():
+    """Create model architecture and load weights if model file fails"""
+    try:
+        # Create a MobileNetV2 based model similar to your original
+        base_model = tf.keras.applications.MobileNetV2(
+            input_shape=(224, 224, 3),
+            include_top=False,
+            weights='imagenet'
+        )
+        
+        # Freeze the base model
+        base_model.trainable = False
+        
+        # Build the model
+        model = tf.keras.Sequential([
+            base_model,
+            tf.keras.layers.GlobalAveragePooling2D(),
+            tf.keras.layers.Dropout(0.2),
+            tf.keras.layers.Dense(256, activation='relu'),
+            tf.keras.layers.Dropout(0.5),
+            tf.keras.layers.Dense(2, activation='softmax')
+        ])
+        
+        # Try to load weights
+        weights_path = CNN_MODEL_PATH.replace('.keras', '_weights.h5')
+        if os.path.exists(weights_path):
+            model.load_weights(weights_path)
+            print(f"✓ Loaded weights from {weights_path}")
+        else:
+            # Check if .keras file is actually a weights file
+            if CNN_MODEL_PATH.endswith('.keras'):
+                # Try to load the .keras file as weights
+                model.load_weights(CNN_MODEL_PATH)
+                print("✓ Loaded weights from .keras file")
+        
+        return model
+    except Exception as e:
+        print(f"Failed to create model from weights: {e}")
+        return None
 # ----------------------------------------
 # TAWAGIN ANG LOAD_MODEL AGAD! (Global Scope)
 # ----------------------------------------
