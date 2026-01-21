@@ -157,36 +157,45 @@ CLASSES = ["Clay Sand", "Silty Sand"]
 print("Loading CNN model...")
 def load_model():
     global cnn_model, cnn_status
-    print(f"Attempting to load model from path: {CNN_MODEL_PATH}") # Debugging
+    print(f"Attempting to load model from path: {CNN_MODEL_PATH}")
     print(f"Is path existing? {os.path.exists(CNN_MODEL_PATH)}")
+    
     try:
-        # 🔧 UPDATED: I-add ang safe_mode=False parameter
+        # Try 1: Load with safe_mode=False
+        print("Attempt 1: Loading with safe_mode=False...")
         cnn_model = tf.keras.models.load_model(
             CNN_MODEL_PATH, 
             compile=False,
-            safe_mode=False  # ← I-add ito para ma-bypass ang batch_normalization issue
+            safe_mode=False
         )
-        
-        # Pagkatapos i-load, i-compile ito (dapat pareho sa training config)
         cnn_model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+        cnn_status = "loaded"
+        print(f"✓ CNN model loaded successfully (Method 1)")
         
-        # I-update ang global status variable
-        cnn_status = "loaded" 
+    except Exception as e1:
+        print(f"⚠ Method 1 failed: {e1}")
         
-        print(f"✓ CNN model loaded successfully")
+        try:
+            # Try 2: Load without compile
+            print("Attempt 2: Loading without compile...")
+            import tensorflow.keras as keras
+            cnn_model = keras.models.load_model(CNN_MODEL_PATH, compile=False)
+            cnn_status = "loaded"
+            print(f"✓ CNN model loaded successfully (Method 2)")
+            
+        except Exception as e2:
+            print(f"❌ All loading methods failed")
+            print(f"Error 1: {e1}")
+            print(f"Error 2: {e2}")
+            cnn_status = "model_loading_failed"
+            cnn_model = None
+    
+    if cnn_model is not None:
         print(f"  Model architecture: {cnn_model.name}")
         print(f"  Input shape: {cnn_model.input_shape}")
         print(f"  Output shape: {cnn_model.output_shape}")
         print(f"  Confidence threshold: {CONFIDENCE_THRESHOLD}")
         print(f"  Classes: {CLASSES}")
-    except FileNotFoundError:
-        print(f"ERROR: CNN model not found at {CNN_MODEL_PATH}")
-        cnn_status = "file_not_found"
-    except Exception as e:
-        print(f"ERROR loading CNN model (TensorFlow issue): {e}")
-        import traceback
-        traceback.print_exc()
-        cnn_status = "model_loading_failed"
 
 # ----------------------------------------
 # TAWAGIN ANG LOAD_MODEL AGAD! (Global Scope)
