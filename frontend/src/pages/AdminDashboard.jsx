@@ -182,9 +182,36 @@ const AdminDashboard = () => {
     setEditStatus('');
   };
 
+  // Palitan ang handleLogout function (around line 185):
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate('/login');
+    try {
+      // Add loading state to prevent double clicks
+      setLoading(true);
+      
+      // Sign out from Supabase
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        console.error('Logout error:', error);
+        showAlert('Failed to log out. Please try again.', 'error');
+        setLoading(false);
+        return;
+      }
+      
+      // Clear any local state if needed
+      // Wait a bit to ensure session is cleared
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Navigate to login with replace to prevent back button issues
+      navigate('/login', { replace: true });
+      
+      // Force reload to clear any cached state
+      window.location.href = '/login';
+    } catch (err) {
+      console.error('Logout error:', err);
+      showAlert('Failed to log out. Please try again.', 'error');
+      setLoading(false);
+    }
   };
 
   const getAlertStyles = () => {
