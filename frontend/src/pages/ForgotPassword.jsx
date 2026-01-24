@@ -51,7 +51,7 @@ const ForgotPassword = () => {
         aria-label="Toggle theme"
         title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
       >
-        {isDark ? <Moon className="w-5 h-5" /> : <Suun className="w-5 h-5" />}
+        {isDark ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
       </button>
       <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl p-10 rounded-3xl shadow-2xl w-full max-w-md border border-slate-200/50 dark:border-slate-700/50">
         {/* Back Button */}
