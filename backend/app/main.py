@@ -160,27 +160,8 @@ def load_model():
     print(f"Attempting to load model from path: {CNN_MODEL_PATH}") # Debugging
     print(f"Is path existing? {os.path.exists(CNN_MODEL_PATH)}")
     try:
-        # Add custom objects to handle version incompatibility
-        custom_objects = {
-            'BatchNormalization': tf.keras.layers.BatchNormalization,
-            'batch_normalization': tf.keras.layers.BatchNormalization,
-            'LayerNormalization': tf.keras.layers.LayerNormalization,
-            'layer_normalization': tf.keras.layers.LayerNormalization,
-            'Add': tf.keras.layers.Add,
-            'Concatenate': tf.keras.layers.Concatenate,
-            'DepthwiseConv2D': tf.keras.layers.DepthwiseConv2D,
-            'ZeroPadding2D': tf.keras.layers.ZeroPadding2D,
-            'GlobalAveragePooling2D': tf.keras.layers.GlobalAveragePooling2D,
-            'ReLU': tf.keras.layers.ReLU
-        }
-        
         # Pilitin ang TensorFlow na i-load ang model nang hindi ito ki-nocompile ulit
-        cnn_model = tf.keras.models.load_model(
-            CNN_MODEL_PATH, 
-            custom_objects=custom_objects,
-            compile=False,
-            safe_mode=False  # Important: try this
-        )
+        cnn_model = tf.keras.models.load_model(CNN_MODEL_PATH, compile=False)
         
         # Pagkatapos i-load, i-compile ito (dapat pareho sa training config)
         cnn_model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
@@ -202,58 +183,7 @@ def load_model():
         import traceback
         traceback.print_exc()
         cnn_status = "model_loading_failed"
-        
-        # Try alternative loading method
-        print("\n⚠️  Trying alternative loading method...")
-        try:
-            # Try loading weights only if model architecture is known
-            cnn_model = create_model_from_weights()
-            if cnn_model:
-                cnn_model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
-                cnn_status = "loaded_from_weights"
-                print("✓ Model loaded from weights successfully")
-        except Exception as e2:
-            print(f"Alternative loading also failed: {e2}")
 
-def create_model_from_weights():
-    """Create model architecture and load weights if model file fails"""
-    try:
-        # Create a MobileNetV2 based model similar to your original
-        base_model = tf.keras.applications.MobileNetV2(
-            input_shape=(224, 224, 3),
-            include_top=False,
-            weights='imagenet'
-        )
-        
-        # Freeze the base model
-        base_model.trainable = False
-        
-        # Build the model
-        model = tf.keras.Sequential([
-            base_model,
-            tf.keras.layers.GlobalAveragePooling2D(),
-            tf.keras.layers.Dropout(0.2),
-            tf.keras.layers.Dense(256, activation='relu'),
-            tf.keras.layers.Dropout(0.5),
-            tf.keras.layers.Dense(2, activation='softmax')
-        ])
-        
-        # Try to load weights
-        weights_path = CNN_MODEL_PATH.replace('.keras', '_weights.h5')
-        if os.path.exists(weights_path):
-            model.load_weights(weights_path)
-            print(f"✓ Loaded weights from {weights_path}")
-        else:
-            # Check if .keras file is actually a weights file
-            if CNN_MODEL_PATH.endswith('.keras'):
-                # Try to load the .keras file as weights
-                model.load_weights(CNN_MODEL_PATH)
-                print("✓ Loaded weights from .keras file")
-        
-        return model
-    except Exception as e:
-        print(f"Failed to create model from weights: {e}")
-        return None
 # ----------------------------------------
 # TAWAGIN ANG LOAD_MODEL AGAD! (Global Scope)
 # ----------------------------------------
