@@ -35,7 +35,7 @@ function PredictionCard({
         )}
         <div className="flex-1 w-full">
           <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-            <span className="font-semibold text-lg text-amber-900 dark:text-amber-200">
+            <span className="font-semibold text-lg text-accent-900 dark:text-accent-200">
               Soil Type Prediction:
             </span>
             <span className={`text-2xl font-bold ${
@@ -97,7 +97,7 @@ function PredictionCard({
                         <div
                           className={`h-2.5 rounded-full transition-all duration-500 ${
                             className === imagePrediction
-                              ? 'bg-amber-600 dark:bg-amber-400'
+                              ? 'bg-accent-600 dark:bg-accent-400'
                               : 'bg-gray-500 dark:bg-gray-600'
                           }`}
                           style={{ width: `${probability * 100}%` }}

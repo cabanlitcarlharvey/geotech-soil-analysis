@@ -222,10 +222,10 @@ const EngineerAnalysisHistory = () => {
 
   return (
     <PageLayout currentPage="history">
-      <div className="bg-white/95 dark:bg-gray-800/95 rounded-2xl shadow-2xl p-10 border border-amber-700 transition-all duration-500 animate-in fade-in" style={{ backdropFilter: 'blur(4px)' }}>
+      <div className="bg-white/95 dark:bg-gray-800/95 rounded-2xl shadow-2xl p-10 border border-accent-700 transition-all duration-500 animate-in fade-in" style={{ backdropFilter: 'blur(4px)' }}>
         {/* Title and Controls */}
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-8 gap-6">
-          <h2 className="text-4xl font-bold text-amber-900 dark:text-amber-200 font-serif">
+          <h2 className="text-4xl font-bold text-accent-900 dark:text-accent-200 font-serif">
             Analysis History
           </h2>
           <div className="flex flex-col md:flex-row items-start md:items-center gap-3 w-full lg:w-auto flex-wrap">
@@ -239,7 +239,7 @@ const EngineerAnalysisHistory = () => {
                 placeholder="Search by soil type, location, status, or date..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full border border-amber-400 dark:border-amber-600 rounded-lg px-4 py-3 bg-amber-50 dark:bg-gray-900 text-base focus:outline-none focus:ring-2 focus:ring-amber-500 transition-all duration-300"
+                className="w-full border border-accent-400 dark:border-accent-600 rounded-lg px-4 py-3 bg-accent-50 dark:bg-gray-900 text-base focus:outline-none focus:ring-2 focus:ring-accent-500 transition-all duration-300"
                 aria-label="Search analysis history"
               />
             </div>
@@ -251,7 +251,7 @@ const EngineerAnalysisHistory = () => {
                 id="soil-type-filter"
                 value={filter}
                 onChange={(e) => setFilter(e.target.value)}
-                className="w-full border border-amber-400 dark:border-amber-600 rounded-lg px-4 py-3 bg-amber-50 dark:bg-gray-900 text-base focus:outline-none focus:ring-2 focus:ring-amber-500 transition-all duration-300"
+                className="w-full border border-accent-400 dark:border-accent-600 rounded-lg px-4 py-3 bg-accent-50 dark:bg-gray-900 text-base focus:outline-none focus:ring-2 focus:ring-accent-500 transition-all duration-300"
                 aria-label="Filter by USCS soil type"
               >
                 <option value="All">All Soil Types</option>
@@ -277,7 +277,7 @@ const EngineerAnalysisHistory = () => {
         {/* Table or Loading/Error States */}
         {loading ? (
           <div className="flex flex-col items-center justify-center h-96">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-amber-700"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-accent-700"></div>
             <p className="mt-4 text-lg text-gray-700 dark:text-gray-200">Loading data...</p>
           </div>
         ) : error ? (
@@ -289,7 +289,7 @@ const EngineerAnalysisHistory = () => {
               <p className="text-lg text-red-600 dark:text-red-400">{error}</p>
               <button
                 onClick={fetchHistory}
-                className="text-amber-700 dark:text-amber-300 hover:underline focus:outline-none focus:ring-2 focus:ring-amber-500 text-base font-medium"
+                className="text-accent-700 dark:text-accent-300 hover:underline focus:outline-none focus:ring-2 focus:ring-accent-500 text-base font-medium"
                 aria-label="Retry loading data"
               >
                 Retry
@@ -299,7 +299,7 @@ const EngineerAnalysisHistory = () => {
         ) : filteredAnalyses.length > 0 ? (
           <div className="overflow-x-auto">
             <table
-              className="w-full table-auto border border-amber-400 dark:border-amber-600 text-base"
+              className="w-full table-auto border border-accent-400 dark:border-accent-600 text-base"
               role="grid"
               aria-describedby="analysis-history-caption"
             >
@@ -307,7 +307,7 @@ const EngineerAnalysisHistory = () => {
                 History of soil analysis results submitted by the engineer
               </caption>
               <thead>
-                <tr className="bg-amber-100 dark:bg-amber-900 sticky top-0 z-10">
+                <tr className="bg-accent-100 dark:bg-accent-900 sticky top-0 z-10">
                   <th scope="col" className="px-6 py-4 text-left font-bold">Date</th>
                   <th scope="col" className="px-6 py-4 text-left font-bold">Location</th>
                   <th scope="col" className="px-6 py-4 text-left font-bold">Total Weight (g)</th>
@@ -324,11 +324,11 @@ const EngineerAnalysisHistory = () => {
                   <th scope="col" className="px-6 py-4 text-left font-bold">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-amber-200 dark:divide-amber-800">
+              <tbody className="divide-y divide-accent-200 dark:divide-accent-800">
                 {filteredAnalyses.map((item) => (
-                  <tr key={item.id} className="odd:bg-amber-50 even:bg-white dark:odd:bg-gray-800 dark:even:bg-gray-900 hover:bg-amber-100 dark:hover:bg-amber-800 transition-colors duration-300">
+                  <tr key={item.id} className="odd:bg-accent-50 even:bg-white dark:odd:bg-gray-800 dark:even:bg-gray-900 hover:bg-accent-100 dark:hover:bg-accent-800 transition-colors duration-300">
                     <td className="px-6 py-4">{formatDateTime(item.created_at)}</td>
-                    <td className="px-6 py-4 font-semibold text-amber-900 dark:text-amber-200">{item.location ?? '—'}</td>
+                    <td className="px-6 py-4 font-semibold text-accent-900 dark:text-accent-200">{item.location ?? '—'}</td>
                     <td className="px-6 py-4">{item.total_weight ? item.total_weight.toFixed(2) : '—'}</td>
                     <td className="px-6 py-4">{item.gravel_weight ? item.gravel_weight.toFixed(2) : '—'}</td>
                     <td className="px-6 py-4">{item.sand_weight ? item.sand_weight.toFixed(2) : '—'}</td>
@@ -342,7 +342,7 @@ const EngineerAnalysisHistory = () => {
                         <img
                           src={item.image_soil_type}
                           alt={`Soil image for ${item.soil_type}`}
-                          className="h-16 w-16 object-cover rounded border border-amber-400 cursor-pointer hover:scale-110 transition-transform duration-300"
+                          className="h-16 w-16 object-cover rounded border border-accent-400 cursor-pointer hover:scale-110 transition-transform duration-300"
                           onClick={() => window.open(item.image_soil_type, '_blank')}
                           title="Click to view full size"
                         />
@@ -363,12 +363,12 @@ const EngineerAnalysisHistory = () => {
                         <div className="flex items-center gap-3">
                           <button
                             onClick={() => openReviewModal(item.id)}
-                            className="px-4 py-2 text-sm font-medium bg-amber-700 text-white rounded-lg hover:bg-amber-800 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 transition-all duration-300 transform hover:scale-105"
+                            className="px-4 py-2 text-sm font-medium bg-accent-700 text-white rounded-lg hover:bg-accent-800 focus:outline-none focus:ring-2 focus:ring-accent-500 focus:ring-offset-2 transition-all duration-300 transform hover:scale-105"
                             aria-label={`View ${item.review_count} reviews for analysis ${item.id}`}
                           >
                             View Review
                           </button>
-                          <span className="bg-amber-100 text-amber-800 text-sm font-bold px-3 py-2 rounded-lg dark:bg-amber-900 dark:text-amber-300">
+                          <span className="bg-accent-100 text-accent-800 text-sm font-bold px-3 py-2 rounded-lg dark:bg-accent-900 dark:text-accent-300">
                             {item.review_count}
                           </span>
                         </div>
@@ -403,7 +403,7 @@ const EngineerAnalysisHistory = () => {
               <p className="text-lg text-gray-700 dark:text-gray-200">No analysis history available.</p>
               <button
                 onClick={() => navigate('/engineer-home')}
-                className="text-amber-700 dark:text-amber-300 hover:underline focus:outline-none focus:ring-2 focus:ring-amber-500 text-base font-medium"
+                className="text-accent-700 dark:text-accent-300 hover:underline focus:outline-none focus:ring-2 focus:ring-accent-500 text-base font-medium"
                 aria-label="Submit a new analysis"
               >
                 Submit a new analysis
@@ -421,13 +421,13 @@ const EngineerAnalysisHistory = () => {
             onClick={e => e.stopPropagation()}
           >
             {/* Modal Header */}
-            <div className="flex justify-between items-center px-8 py-6 border-b border-amber-200 dark:border-amber-700">
-              <h3 className="text-2xl font-bold text-amber-900 dark:text-amber-200">
+            <div className="flex justify-between items-center px-8 py-6 border-b border-accent-200 dark:border-accent-700">
+              <h3 className="text-2xl font-bold text-accent-900 dark:text-accent-200">
                 {modalType === 'review' ? 'Review Details' : 'Confirm Deletion'}
               </h3>
               <button
                 onClick={closeModal}
-                className="p-2 rounded-full hover:bg-amber-100 dark:hover:bg-amber-900 focus:outline-none focus:ring-2 focus:ring-amber-500 transition-colors duration-300"
+                className="p-2 rounded-full hover:bg-accent-100 dark:hover:bg-accent-900 focus:outline-none focus:ring-2 focus:ring-accent-500 transition-colors duration-300"
                 aria-label="Close modal"
               >
                 <X className="w-6 h-6 text-gray-600 dark:text-gray-400" />
@@ -440,7 +440,7 @@ const EngineerAnalysisHistory = () => {
                 <>
                   {reviewLoading ? (
                     <div className="flex justify-center items-center h-48">
-                      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-amber-700"></div>
+                      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-accent-700"></div>
                     </div>
                   ) : reviewError ? (
                     <p className="text-lg text-red-600 dark:text-red-400">{reviewError}</p>
@@ -449,9 +449,9 @@ const EngineerAnalysisHistory = () => {
                       {selectedReviews.map((review) => (
                         <div
                           key={review.id}
-                          className="border-l-4 border-amber-700 dark:border-amber-400 bg-amber-50 dark:bg-gray-700 p-5 rounded-lg"
+                          className="border-l-4 border-accent-700 dark:border-accent-400 bg-accent-50 dark:bg-gray-700 p-5 rounded-lg"
                         >
-                          <p className="text-lg font-bold text-amber-900 dark:text-amber-200 mb-2">
+                          <p className="text-lg font-bold text-accent-900 dark:text-accent-200 mb-2">
                             {review.reviewer_name}
                           </p>
                           <p className="text-base text-gray-700 dark:text-gray-300 mb-3">
@@ -487,10 +487,10 @@ const EngineerAnalysisHistory = () => {
             </div>
 
             {/* Modal Footer */}
-            <div className="flex justify-end gap-3 px-8 py-6 border-t border-amber-200 dark:border-amber-700 bg-amber-50 dark:bg-gray-700">
+            <div className="flex justify-end gap-3 px-8 py-6 border-t border-accent-200 dark:border-accent-700 bg-accent-50 dark:bg-gray-700">
               <button
                 onClick={closeModal}
-                className="px-6 py-3 text-base font-medium bg-amber-300 dark:bg-amber-700 text-amber-900 dark:text-amber-100 rounded-lg hover:bg-amber-400 dark:hover:bg-amber-800 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 transition-all duration-300"
+                className="px-6 py-3 text-base font-medium bg-accent-300 dark:bg-accent-700 text-accent-900 dark:text-accent-100 rounded-lg hover:bg-accent-400 dark:hover:bg-accent-800 focus:outline-none focus:ring-2 focus:ring-accent-500 focus:ring-offset-2 transition-all duration-300"
                 aria-label={modalType === 'review' ? 'Close review modal' : 'Cancel deletion'}
               >
                 {modalType === 'review' ? 'Close' : 'Cancel'}

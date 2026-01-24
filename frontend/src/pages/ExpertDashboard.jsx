@@ -377,10 +377,10 @@ const ExpertDashboard = () => {
 
       {/* Main Content */}
       <main className="max-w-full mx-auto mt-12 px-6 pb-12">
-        <div className="bg-white/95 dark:bg-gray-800/95 rounded-2xl shadow-2xl p-10 border border-amber-700 transition-all duration-500 animate-in fade-in" style={{ backdropFilter: 'blur(4px)' }}>
+        <div className="bg-white/95 dark:bg-gray-800/95 rounded-2xl shadow-2xl p-10 border border-accent-700 transition-all duration-500 animate-in fade-in" style={{ backdropFilter: 'blur(4px)' }}>
           {/* Title and Controls */}
           <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-8 gap-6">
-            <h2 className="text-4xl font-bold text-amber-900 dark:text-amber-200 font-serif">
+            <h2 className="text-4xl font-bold text-accent-900 dark:text-accent-200 font-serif">
               Soil Analysis Records
             </h2>
             <div className="flex flex-col md:flex-row items-start md:items-center gap-3 w-full lg:w-auto flex-wrap">
@@ -394,7 +394,7 @@ const ExpertDashboard = () => {
                   placeholder="Search by soil type, location, status, or date..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full border border-amber-400 dark:border-amber-600 rounded-lg px-4 py-3 bg-amber-50 dark:bg-gray-900 text-base focus:outline-none focus:ring-2 focus:ring-amber-500 transition-all duration-300"
+                  className="w-full border border-accent-400 dark:border-accent-600 rounded-lg px-4 py-3 bg-accent-50 dark:bg-gray-900 text-base focus:outline-none focus:ring-2 focus:ring-accent-500 transition-all duration-300"
                   aria-label="Search analysis records"
                 />
               </div>
@@ -404,7 +404,7 @@ const ExpertDashboard = () => {
                 </label>
                 <select
                   id="soil-type-filter"
-                  className="w-full border border-amber-400 dark:border-amber-600 rounded-lg px-4 py-3 bg-amber-50 dark:bg-gray-900 text-base focus:outline-none focus:ring-2 focus:ring-amber-500 transition-all duration-300"
+                  className="w-full border border-accent-400 dark:border-accent-600 rounded-lg px-4 py-3 bg-accent-50 dark:bg-gray-900 text-base focus:outline-none focus:ring-2 focus:ring-accent-500 transition-all duration-300"
                   value={soilTypeFilter}
                   onChange={(e) => setSoilTypeFilter(e.target.value)}
                   aria-label="Filter by USCS soil type"
@@ -430,7 +430,7 @@ const ExpertDashboard = () => {
           {/* Table or Loading/Error States */}
           {loading ? (
             <div className="flex flex-col items-center justify-center h-96">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-amber-700"></div>
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-accent-700"></div>
               <p className="mt-4 text-lg text-gray-700 dark:text-gray-200">Loading data...</p>
             </div>
           ) : error ? (
@@ -442,7 +442,7 @@ const ExpertDashboard = () => {
                 <p className="text-lg text-red-600 dark:text-red-400">{error}</p>
                 <button
                   onClick={() => fetchAnalyses(userId)}
-                  className="text-amber-700 dark:text-amber-300 hover:underline focus:outline-none focus:ring-2 focus:ring-amber-500 text-base font-medium"
+                  className="text-accent-700 dark:text-accent-300 hover:underline focus:outline-none focus:ring-2 focus:ring-accent-500 text-base font-medium"
                   aria-label="Retry loading data"
                 >
                   Retry
@@ -461,7 +461,7 @@ const ExpertDashboard = () => {
           ) : (
             <div className="overflow-x-auto">
               <table
-                className="w-full table-auto border border-amber-400 dark:border-amber-600 text-base"
+                className="w-full table-auto border border-accent-400 dark:border-accent-600 text-base"
                 role="grid"
                 aria-describedby="analysis-records-caption"
               >
@@ -469,7 +469,7 @@ const ExpertDashboard = () => {
                   Soil analysis records for expert review
                 </caption>
                 <thead>
-                  <tr className="bg-amber-100 dark:bg-amber-900 sticky top-0 z-10">
+                  <tr className="bg-accent-100 dark:bg-accent-900 sticky top-0 z-10">
                     <th scope="col" className="px-6 py-4 text-left font-bold">Analysis ID</th>
                     <th scope="col" className="px-6 py-4 text-left font-bold">Staff Name</th>
                     <th scope="col" className="px-6 py-4 text-left font-bold">Location</th>
@@ -487,12 +487,12 @@ const ExpertDashboard = () => {
                     <th scope="col" className="px-6 py-4 text-left font-bold">Review</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-amber-200 dark:divide-amber-800">
+                <tbody className="divide-y divide-accent-200 dark:divide-accent-800">
                   {filteredAnalyses.map((analysis) => (
-                    <tr key={analysis.id} className="odd:bg-amber-50 even:bg-white dark:odd:bg-gray-800 dark:even:bg-gray-900 hover:bg-amber-100 dark:hover:bg-amber-800 transition-colors duration-300">
+                    <tr key={analysis.id} className="odd:bg-accent-50 even:bg-white dark:odd:bg-gray-800 dark:even:bg-gray-900 hover:bg-accent-100 dark:hover:bg-accent-800 transition-colors duration-300">
                       <td className="px-6 py-4 font-semibold">{analysis.id}</td>
                       <td className="px-6 py-4">{engineerNameMap[analysis.engineer_id] || analysis.engineer_id || '—'}</td>
-                      <td className="px-6 py-4 font-semibold text-amber-900 dark:text-amber-200">{analysis.location ?? '—'}</td>
+                      <td className="px-6 py-4 font-semibold text-accent-900 dark:text-accent-200">{analysis.location ?? '—'}</td>
                       <td className="px-6 py-4">{analysis.total_weight ? analysis.total_weight.toFixed(2) : '—'}</td>
                       <td className="px-6 py-4">{analysis.gravel_weight ? analysis.gravel_weight.toFixed(2) : '—'}</td>
                       <td className="px-6 py-4">{analysis.sand_weight ? analysis.sand_weight.toFixed(2) : '—'}</td>
@@ -507,7 +507,7 @@ const ExpertDashboard = () => {
                           <img
                             src={analysis.image_soil_type}
                             alt={`Soil image for ${analysis.soil_type}`}
-                            className="h-16 w-16 object-cover rounded border border-amber-400 cursor-pointer hover:scale-110 transition-transform duration-300"
+                            className="h-16 w-16 object-cover rounded border border-accent-400 cursor-pointer hover:scale-110 transition-transform duration-300"
                             onClick={() => window.open(analysis.image_soil_type, '_blank')}
                             title="Click to view full size"
                           />
@@ -533,7 +533,7 @@ const ExpertDashboard = () => {
                               </span>
                               <button
                                 onClick={() => openReviewModal(analysis.id)}
-                                className="w-full px-4 py-2 text-base font-medium bg-amber-700 text-white rounded-lg hover:bg-amber-800 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 transition-all duration-300 transform hover:scale-105"
+                                className="w-full px-4 py-2 text-base font-medium bg-accent-700 text-white rounded-lg hover:bg-accent-800 focus:outline-none focus:ring-2 focus:ring-accent-500 focus:ring-offset-2 transition-all duration-300 transform hover:scale-105"
                               >
                                 Edit Review
                               </button>
@@ -547,7 +547,7 @@ const ExpertDashboard = () => {
                           ) : (
                             <button
                               onClick={() => openReviewModal(analysis.id)}
-                              className="w-full px-4 py-2 text-base font-medium bg-amber-700 text-white rounded-lg hover:bg-amber-800 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 transition-all duration-300 transform hover:scale-105"
+                              className="w-full px-4 py-2 text-base font-medium bg-accent-700 text-white rounded-lg hover:bg-accent-800 focus:outline-none focus:ring-2 focus:ring-accent-500 focus:ring-offset-2 transition-all duration-300 transform hover:scale-105"
                             >
                               Add Review
                             </button>
@@ -571,13 +571,13 @@ const ExpertDashboard = () => {
             onClick={e => e.stopPropagation()}
           >
             {/* Modal Header */}
-            <div className="flex justify-between items-center px-8 py-6 border-b border-amber-200 dark:border-amber-700">
-              <h3 className="text-2xl font-bold text-amber-900 dark:text-amber-200">
+            <div className="flex justify-between items-center px-8 py-6 border-b border-accent-200 dark:border-accent-700">
+              <h3 className="text-2xl font-bold text-accent-900 dark:text-accent-200">
                 {userReviewMap[currentAnalysisId] ? 'Edit Review Comment' : 'Add Review Comment'}
               </h3>
               <button
                 onClick={closeReviewModal}
-                className="p-2 rounded-full hover:bg-amber-100 dark:hover:bg-amber-900 focus:outline-none focus:ring-2 focus:ring-amber-500 transition-colors duration-300"
+                className="p-2 rounded-full hover:bg-accent-100 dark:hover:bg-accent-900 focus:outline-none focus:ring-2 focus:ring-accent-500 transition-colors duration-300"
                 aria-label="Close modal"
               >
                 <X className="w-6 h-6 text-gray-600 dark:text-gray-400" />
@@ -587,58 +587,58 @@ const ExpertDashboard = () => {
             {/* Modal Body */}
             <div className="flex-1 overflow-y-auto px-8 py-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                <div className="bg-amber-50 dark:bg-gray-700 p-4 rounded-lg">
+                <div className="bg-accent-50 dark:bg-gray-700 p-4 rounded-lg">
                   <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Analysis ID</p>
-                  <p className="text-lg font-bold text-amber-900 dark:text-amber-200">{currentAnalysisId}</p>
+                  <p className="text-lg font-bold text-accent-900 dark:text-accent-200">{currentAnalysisId}</p>
                 </div>
-                <div className="bg-amber-50 dark:bg-gray-700 p-4 rounded-lg">
+                <div className="bg-accent-50 dark:bg-gray-700 p-4 rounded-lg">
                   <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Staff Name</p>
-                  <p className="text-lg font-bold text-amber-900 dark:text-amber-200">
+                  <p className="text-lg font-bold text-accent-900 dark:text-accent-200">
                     {engineerNameMap[currentAnalysisData.engineer_id] || currentAnalysisData.engineer_id || '—'}
                   </p>
                 </div>
-                <div className="bg-amber-50 dark:bg-gray-700 p-4 rounded-lg">
+                <div className="bg-accent-50 dark:bg-gray-700 p-4 rounded-lg">
                   <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Location</p>
-                  <p className="text-lg font-bold text-amber-900 dark:text-amber-200">{currentAnalysisData.location ?? 'Not provided'}</p>
+                  <p className="text-lg font-bold text-accent-900 dark:text-accent-200">{currentAnalysisData.location ?? 'Not provided'}</p>
                 </div>
-                <div className="bg-amber-50 dark:bg-gray-700 p-4 rounded-lg">
+                <div className="bg-accent-50 dark:bg-gray-700 p-4 rounded-lg">
                   <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">USCS Soil Type</p>
-                  <p className="text-lg font-bold text-amber-900 dark:text-amber-200">{currentAnalysisData.soil_type ?? '—'}</p>
+                  <p className="text-lg font-bold text-accent-900 dark:text-accent-200">{currentAnalysisData.soil_type ?? '—'}</p>
                 </div>
-                <div className="bg-amber-50 dark:bg-gray-700 p-4 rounded-lg">
+                <div className="bg-accent-50 dark:bg-gray-700 p-4 rounded-lg">
                   <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Predicted Type</p>
-                  <p className="text-lg font-bold text-amber-900 dark:text-amber-200">{currentAnalysisData.predicted_soil_type ?? 'Not provided'}</p>
+                  <p className="text-lg font-bold text-accent-900 dark:text-accent-200">{currentAnalysisData.predicted_soil_type ?? 'Not provided'}</p>
                 </div>
-                <div className="bg-amber-50 dark:bg-gray-700 p-4 rounded-lg">
+                <div className="bg-accent-50 dark:bg-gray-700 p-4 rounded-lg">
                   <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Total Weight</p>
-                  <p className="text-lg font-bold text-amber-900 dark:text-amber-200">{currentAnalysisData.total_weight ?? '—'} g</p>
+                  <p className="text-lg font-bold text-accent-900 dark:text-accent-200">{currentAnalysisData.total_weight ?? '—'} g</p>
                 </div>
-                <div className="bg-amber-50 dark:bg-gray-700 p-4 rounded-lg">
+                <div className="bg-accent-50 dark:bg-gray-700 p-4 rounded-lg">
                   <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Gravel %</p>
-                  <p className="text-lg font-bold text-amber-900 dark:text-amber-200">{currentAnalysisData.gravel_percent ? `${currentAnalysisData.gravel_percent}%` : '—'}</p>
+                  <p className="text-lg font-bold text-accent-900 dark:text-accent-200">{currentAnalysisData.gravel_percent ? `${currentAnalysisData.gravel_percent}%` : '—'}</p>
                 </div>
-                <div className="bg-amber-50 dark:bg-gray-700 p-4 rounded-lg">
+                <div className="bg-accent-50 dark:bg-gray-700 p-4 rounded-lg">
                   <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Sand %</p>
-                  <p className="text-lg font-bold text-amber-900 dark:text-amber-200">{currentAnalysisData.sand_percent ? `${currentAnalysisData.sand_percent}%` : '—'}</p>
+                  <p className="text-lg font-bold text-accent-900 dark:text-accent-200">{currentAnalysisData.sand_percent ? `${currentAnalysisData.sand_percent}%` : '—'}</p>
                 </div>
-                <div className="bg-amber-50 dark:bg-gray-700 p-4 rounded-lg">
+                <div className="bg-accent-50 dark:bg-gray-700 p-4 rounded-lg">
                   <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Fines %</p>
-                  <p className="text-lg font-bold text-amber-900 dark:text-amber-200">{currentAnalysisData.fines_percent ? `${currentAnalysisData.fines_percent}%` : '—'}</p>
+                  <p className="text-lg font-bold text-accent-900 dark:text-accent-200">{currentAnalysisData.fines_percent ? `${currentAnalysisData.fines_percent}%` : '—'}</p>
                 </div>
               </div>
 
-              <div className="bg-amber-50 dark:bg-gray-700 p-4 rounded-lg mb-6">
+              <div className="bg-accent-50 dark:bg-gray-700 p-4 rounded-lg mb-6">
                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Captured</p>
-                <p className="text-base font-semibold text-amber-900 dark:text-amber-200">{formatDateTime(currentAnalysisData.created_at)}</p>
+                <p className="text-base font-semibold text-accent-900 dark:text-accent-200">{formatDateTime(currentAnalysisData.created_at)}</p>
               </div>
 
-              <label htmlFor="review-comment" className="block text-base font-semibold text-amber-900 dark:text-amber-200 mb-3">
+              <label htmlFor="review-comment" className="block text-base font-semibold text-accent-900 dark:text-accent-200 mb-3">
                 Review Comment
               </label>
               <textarea
                 id="review-comment"
                 rows={8}
-                className="w-full p-4 rounded-lg bg-amber-50 dark:bg-gray-700 border-2 border-amber-400 dark:border-amber-600 focus:outline-none focus:ring-2 focus:ring-amber-500 text-base transition-all duration-300"
+                className="w-full p-4 rounded-lg bg-accent-50 dark:bg-gray-700 border-2 border-accent-400 dark:border-accent-600 focus:outline-none focus:ring-2 focus:ring-accent-500 text-base transition-all duration-300"
                 value={reviewComments[currentAnalysisId] || ''}
                 onChange={(e) => handleReviewChange(e.target.value)}
                 placeholder="Enter your review comment..."
@@ -646,7 +646,7 @@ const ExpertDashboard = () => {
               />
 
               <div className="mt-6">
-                <p className="text-base font-semibold text-amber-900 dark:text-amber-200 mb-3">
+                <p className="text-base font-semibold text-accent-900 dark:text-accent-200 mb-3">
                   Set Analysis Status
                 </p>
                 <div className="flex flex-col gap-4">
@@ -674,34 +674,34 @@ const ExpertDashboard = () => {
                     />
                     <span className="ml-3 text-lg font-semibold text-red-800 dark:text-red-300">DISAPPROVED</span>
                   </label>
-                  <label className="flex items-center p-4 border-2 border-amber-400 dark:border-amber-600 rounded-lg cursor-pointer hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors duration-300">
+                  <label className="flex items-center p-4 border-2 border-accent-400 dark:border-accent-600 rounded-lg cursor-pointer hover:bg-accent-50 dark:hover:bg-accent-900/20 transition-colors duration-300">
                     <input
                       type="radio"
                       name="status"
                       value="PENDING"
                       checked={selectedStatus === 'PENDING'}
                       onChange={(e) => setSelectedStatus(e.target.value)}
-                      className="w-5 h-5 focus:ring-amber-500"
+                      className="w-5 h-5 focus:ring-accent-500"
                       aria-label="Set status to PENDING"
                     />
-                    <span className="ml-3 text-lg font-semibold text-amber-900 dark:text-amber-200">PENDING</span>
+                    <span className="ml-3 text-lg font-semibold text-accent-900 dark:text-accent-200">PENDING</span>
                   </label>
                 </div>
               </div>
             </div>
 
             {/* Modal Footer */}
-            <div className="flex justify-end gap-3 px-8 py-6 border-t border-amber-200 dark:border-amber-700 bg-amber-50 dark:bg-gray-700">
+            <div className="flex justify-end gap-3 px-8 py-6 border-t border-accent-200 dark:border-accent-700 bg-accent-50 dark:bg-gray-700">
               <button
                 onClick={closeReviewModal}
-                className="px-6 py-3 text-base font-medium bg-amber-300 dark:bg-amber-700 text-amber-900 dark:text-amber-100 rounded-lg hover:bg-amber-400 dark:hover:bg-amber-800 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 transition-all duration-300"
+                className="px-6 py-3 text-base font-medium bg-accent-300 dark:bg-accent-700 text-accent-900 dark:text-accent-100 rounded-lg hover:bg-accent-400 dark:hover:bg-accent-800 focus:outline-none focus:ring-2 focus:ring-accent-500 focus:ring-offset-2 transition-all duration-300"
                 aria-label="Cancel review"
               >
                 Cancel
               </button>
               <button
                 onClick={handleReviewSubmit}
-                className="px-6 py-3 text-base font-medium bg-amber-700 text-white rounded-lg hover:bg-amber-800 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 transition-all duration-300 transform hover:scale-105"
+                className="px-6 py-3 text-base font-medium bg-accent-700 text-white rounded-lg hover:bg-accent-800 focus:outline-none focus:ring-2 focus:ring-accent-500 focus:ring-offset-2 transition-all duration-300 transform hover:scale-105"
                 aria-label="Submit review"
               >
                 Submit Review
@@ -718,11 +718,11 @@ const ExpertDashboard = () => {
             className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md transform transition-all duration-300 animate-in fade-in scale-95 hover:scale-100"
             onClick={e => e.stopPropagation()}
           >
-            <div className="flex justify-between items-center px-8 py-6 border-b border-amber-200 dark:border-amber-700">
-              <h3 className="text-2xl font-bold text-amber-900 dark:text-amber-200">Delete Review</h3>
+            <div className="flex justify-between items-center px-8 py-6 border-b border-accent-200 dark:border-accent-700">
+              <h3 className="text-2xl font-bold text-accent-900 dark:text-accent-200">Delete Review</h3>
               <button
                 onClick={closeDeleteModal}
-                className="p-2 rounded-full hover:bg-amber-100 dark:hover:bg-amber-900 focus:outline-none focus:ring-2 focus:ring-amber-500 transition-colors duration-300"
+                className="p-2 rounded-full hover:bg-accent-100 dark:hover:bg-accent-900 focus:outline-none focus:ring-2 focus:ring-accent-500 transition-colors duration-300"
                 aria-label="Close delete modal"
               >
                 <X className="w-6 h-6 text-gray-600 dark:text-gray-400" />
@@ -731,16 +731,16 @@ const ExpertDashboard = () => {
             <div className="px-8 py-6 space-y-4">
               <p className="text-lg text-gray-800 dark:text-gray-200">
                 Are you sure you want to delete the review for analysis{' '}
-                <span className="font-bold text-amber-900 dark:text-amber-200">{deleteTargetId}</span>?
+                <span className="font-bold text-accent-900 dark:text-accent-200">{deleteTargetId}</span>?
               </p>
               <p className="text-sm text-gray-600 dark:text-gray-400">
                 It cannot be restored after deletion.
               </p>
             </div>
-            <div className="flex justify-end gap-3 px-8 py-6 border-t border-amber-200 dark:border-amber-700 bg-amber-50 dark:bg-gray-700">
+            <div className="flex justify-end gap-3 px-8 py-6 border-t border-accent-200 dark:border-accent-700 bg-accent-50 dark:bg-gray-700">
               <button
                 onClick={closeDeleteModal}
-                className="px-6 py-3 text-base font-medium bg-amber-300 dark:bg-amber-700 text-amber-900 dark:text-amber-100 rounded-lg hover:bg-amber-400 dark:hover:bg-amber-800 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 transition-all duration-300"
+                className="px-6 py-3 text-base font-medium bg-accent-300 dark:bg-accent-700 text-accent-900 dark:text-accent-100 rounded-lg hover:bg-accent-400 dark:hover:bg-accent-800 focus:outline-none focus:ring-2 focus:ring-accent-500 focus:ring-offset-2 transition-all duration-300"
               >
                 Cancel
               </button>

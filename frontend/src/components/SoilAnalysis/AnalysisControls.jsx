@@ -45,7 +45,7 @@ function AnalysisControls({ buttonStates, onSendCommand }) {
           3: Sand Weight
         </button>
         <button
-          className="px-6 py-3 rounded-lg font-semibold text-base bg-amber-600 hover:bg-amber-700 text-white focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 transition-all duration-300 transform hover:scale-105"
+          className="px-6 py-3 rounded-lg font-semibold text-base bg-accent-600 hover:bg-accent-700 text-white focus:outline-none focus:ring-2 focus:ring-accent-500 focus:ring-offset-2 transition-all duration-300 transform hover:scale-105"
           onClick={() => onSendCommand('W')}
           aria-label="Check Weight"
         >

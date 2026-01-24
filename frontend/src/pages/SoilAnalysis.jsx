@@ -345,12 +345,12 @@ function SoilAnalysis() {
       <div className="flex flex-col lg:flex-row gap-6 max-w-7xl mx-auto">
         {/* Progress Sidebar */}
         <aside className="w-full lg:w-1/4">
-          <div className="bg-white/95 dark:bg-gray-800/95 rounded-2xl shadow-xl border border-amber-700 dark:border-amber-600 p-6 transition-all duration-300" style={{ backdropFilter: 'blur(4px)' }}>
-            <h3 className="text-xl font-bold mb-6 text-amber-900 dark:text-amber-200">Progress Tracker</h3>
+          <div className="bg-white/95 dark:bg-gray-800/95 rounded-2xl shadow-xl border border-accent-700 dark:border-accent-600 p-6 transition-all duration-300" style={{ backdropFilter: 'blur(4px)' }}>
+            <h3 className="text-xl font-bold mb-6 text-accent-900 dark:text-accent-200">Progress Tracker</h3>
             <ul className="space-y-4">
               {steps.map((s, index) => (
-                <li key={index} className={`flex items-center gap-3 p-3 rounded-lg transition-all duration-300 ${index === currentStepIndex ? 'font-bold text-amber-900 dark:text-amber-200 bg-amber-100 dark:bg-amber-900/30' : index < currentStepIndex ? 'text-green-700 dark:text-green-400' : 'text-gray-600 dark:text-gray-400'}`}>
-                  <CheckCircle className={`w-6 h-6 flex-shrink-0 transition-colors duration-300 ${index < currentStepIndex ? 'text-green-600 dark:text-green-400' : index === currentStepIndex ? 'text-amber-700 dark:text-amber-300' : 'text-gray-400 dark:text-gray-600'}`} />
+                <li key={index} className={`flex items-center gap-3 p-3 rounded-lg transition-all duration-300 ${index === currentStepIndex ? 'font-bold text-accent-900 dark:text-accent-200 bg-accent-100 dark:bg-accent-900/30' : index < currentStepIndex ? 'text-green-700 dark:text-green-400' : 'text-gray-600 dark:text-gray-400'}`}>
+                  <CheckCircle className={`w-6 h-6 flex-shrink-0 transition-colors duration-300 ${index < currentStepIndex ? 'text-accent-700 dark:text-accent-300' : index === currentStepIndex ? 'text-accent-700 dark:text-accent-300' : 'text-gray-400 dark:text-gray-600'}`} />
                   <span className="text-base">Step {index + 1}: {s.label}</span>
                 </li>
               ))}
@@ -359,9 +359,9 @@ function SoilAnalysis() {
         </aside>
 
         <section className="w-full lg:w-3/4">
-          <div className="bg-white/95 dark:bg-gray-800/95 rounded-2xl shadow-xl border border-amber-700 dark:border-amber-600 p-8 transition-all duration-300" style={{ backdropFilter: 'blur(4px)' }}>
+          <div className="bg-white/95 dark:bg-gray-800/95 rounded-2xl shadow-xl border border-accent-700 dark:border-accent-600 p-8 transition-all duration-300" style={{ backdropFilter: 'blur(4px)' }}>
             <div className="flex items-center justify-between mb-2">
-              <h2 className="text-3xl font-bold text-amber-900 dark:text-amber-200">
+              <h2 className="text-3xl font-bold text-accent-900 dark:text-accent-200">
                 Soil Classification Analysis
               </h2>
               
@@ -369,7 +369,7 @@ function SoilAnalysis() {
                 <button
                   type="button"
                   onClick={handleBackStep}
-                  className="inline-flex items-center px-3 py-2 text-sm font-semibold rounded-lg border border-amber-600 text-amber-800 dark:text-amber-200 bg-white/80 dark:bg-gray-800 hover:bg-amber-50 dark:hover:bg-gray-700 transition-colors duration-200"
+                  className="inline-flex items-center px-3 py-2 text-sm font-semibold rounded-lg border border-accent-600 text-accent-800 dark:text-accent-200 bg-white/80 dark:bg-gray-800 hover:bg-accent-50 dark:hover:bg-gray-700 transition-colors duration-200"
                 >
                   <ArrowLeft className="w-4 h-4 mr-2" />
                   Back
@@ -434,9 +434,9 @@ function SoilAnalysis() {
 
             {/* Pie Chart */}
             {totalWeight && currentStepIndex >= 2 && (
-              <div className="mb-6 border-2 border-amber-400 dark:border-amber-700 bg-amber-50/80 dark:bg-gray-900/50 p-6 rounded-2xl shadow-lg">
-                <h3 className="text-xl font-bold mb-4 text-amber-900 dark:text-amber-200">Composition Breakdown</h3>
-                <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-amber-300 dark:border-amber-700">
+              <div className="mb-6 border-2 border-accent-400 dark:border-accent-700 bg-accent-50/80 dark:bg-gray-900/50 p-6 rounded-2xl shadow-lg">
+                <h3 className="text-xl font-bold mb-4 text-accent-900 dark:text-accent-200">Composition Breakdown</h3>
+                <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-accent-300 dark:border-accent-700">
                   <div className="max-w-sm mx-auto">
                     <Pie data={pieChartData} options={pieChartOptions} />
                   </div>
@@ -446,37 +446,37 @@ function SoilAnalysis() {
 
             {/* Results Card */}
             {(totalWeight || results) && (
-              <div className="border-2 border-amber-400 dark:border-amber-700 bg-amber-50/80 dark:bg-gray-900/50 p-6 rounded-2xl shadow-lg mb-6">
-                <h3 className="text-2xl font-bold mb-4 text-amber-900 dark:text-amber-200">Analysis Results</h3>
+              <div className="border-2 border-accent-400 dark:border-accent-700 bg-accent-50/80 dark:bg-gray-900/50 p-6 rounded-2xl shadow-lg mb-6">
+                <h3 className="text-2xl font-bold mb-4 text-accent-900 dark:text-accent-200">Analysis Results</h3>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                   {fullLocation && (
-                    <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-amber-300 dark:border-amber-700">
+                    <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-accent-300 dark:border-accent-700">
                       <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Location</p>
-                      <p className="text-lg font-bold text-amber-900 dark:text-amber-200">{fullLocation}</p>
+                      <p className="text-lg font-bold text-accent-900 dark:text-accent-200">{fullLocation}</p>
                     </div>
                   )}
                   {totalWeight && (
-                    <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-amber-300 dark:border-amber-700">
+                    <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-accent-300 dark:border-accent-700">
                       <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Total Weight</p>
-                      <p className="text-2xl font-bold text-amber-900 dark:text-amber-200">{totalWeight.toFixed(2)} g</p>
+                      <p className="text-2xl font-bold text-accent-900 dark:text-accent-200">{totalWeight.toFixed(2)} g</p>
                     </div>
                   )}
                   {gravelWeight && (
-                    <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-amber-300 dark:border-amber-700">
+                    <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-accent-300 dark:border-accent-700">
                       <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Gravel Weight</p>
-                      <p className="text-2xl font-bold text-amber-900 dark:text-amber-200">{gravelWeight.toFixed(2)} g</p>
+                      <p className="text-2xl font-bold text-accent-900 dark:text-accent-200">{gravelWeight.toFixed(2)} g</p>
                     </div>
                   )}
                   {results && (
                     <>
-                      <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-amber-300 dark:border-amber-700">
+                      <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-accent-300 dark:border-accent-700">
                         <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Sand Weight</p>
-                        <p className="text-2xl font-bold text-amber-900 dark:text-amber-200">{results.sand_weight.toFixed(2)} g</p>
+                        <p className="text-2xl font-bold text-accent-900 dark:text-accent-200">{results.sand_weight.toFixed(2)} g</p>
                       </div>
-                      <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-amber-300 dark:border-amber-700">
+                      <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-accent-300 dark:border-accent-700">
                         <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">USCS Soil Type</p>
-                        <p className="text-2xl font-bold text-amber-900 dark:text-amber-200">{results.soil_type}</p>
+                        <p className="text-2xl font-bold text-accent-900 dark:text-accent-200">{results.soil_type}</p>
                       </div>
                     </>
                   )}
@@ -484,15 +484,15 @@ function SoilAnalysis() {
 
                 {results && (
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                    <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-amber-300 dark:border-amber-700">
+                    <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-accent-300 dark:border-accent-700">
                       <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Gravel %</p>
                       <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{results.gravel_percent.toFixed(2)}%</p>
                     </div>
-                    <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-amber-300 dark:border-amber-700">
+                    <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-accent-300 dark:border-accent-700">
                       <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Sand %</p>
                       <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">{results.sand_percent.toFixed(2)}%</p>
                     </div>
-                    <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-amber-300 dark:border-amber-700">
+                    <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-accent-300 dark:border-accent-700">
                       <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Fines %</p>
                       <p className="text-2xl font-bold text-red-600 dark:text-red-400">{results.fines_percent.toFixed(2)}%</p>
                     </div>
@@ -504,7 +504,7 @@ function SoilAnalysis() {
             {/* Action Buttons */}
             {results && (
               <div className="flex flex-col sm:flex-row gap-4">
-                <button onClick={() => navigate('/engineer-history')} className="flex-1 px-6 py-3 text-base font-semibold bg-amber-700 hover:bg-amber-800 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 transition-all duration-300 transform hover:scale-105">
+                <button onClick={() => navigate('/engineer-history')} className="flex-1 px-6 py-3 text-base font-semibold bg-accent-700 hover:bg-accent-800 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-accent-500 focus:ring-offset-2 transition-all duration-300 transform hover:scale-105">
                   View Analysis History
                 </button>
                 <button onClick={() => sendCommand('R')} className="flex-1 px-6 py-3 text-base font-semibold bg-green-700 hover:bg-green-800 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all duration-300 transform hover:scale-105 flex items-center justify-center gap-2">

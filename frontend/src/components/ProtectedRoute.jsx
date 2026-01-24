@@ -81,8 +81,8 @@ const ProtectedRoute = ({ children, requiredRole }) => {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 dark:from-gray-900 dark:via-gray-900 dark:to-slate-900 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-amber-600 mx-auto mb-4"></div>
-          <p className="text-xl text-amber-900 dark:text-amber-200 font-semibold">Loading...</p>
+          <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-accent-600 mx-auto mb-4"></div>
+          <p className="text-xl text-accent-900 dark:text-accent-200 font-semibold">Loading...</p>
         </div>
       </div>
     );

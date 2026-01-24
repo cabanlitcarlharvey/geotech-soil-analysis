@@ -35,11 +35,11 @@ const ForgotPassword = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 dark:from-gray-900 dark:via-gray-900 dark:to-slate-900 flex items-center justify-center transition-colors duration-300 px-4">
-      <div className="bg-white/95 dark:bg-gray-800/95 p-10 rounded-3xl shadow-2xl w-full max-w-md border border-amber-700 dark:border-amber-600 backdrop-blur-sm">
+      <div className="bg-white/95 dark:bg-gray-800/95 p-10 rounded-3xl shadow-2xl w-full max-w-md border border-accent-700 dark:border-accent-600 backdrop-blur-sm">
         {/* Back Button */}
         <button
           onClick={() => navigate('/login')}
-          className="flex items-center gap-2 text-amber-700 dark:text-amber-300 hover:text-amber-900 dark:hover:text-amber-100 mb-6 transition-colors"
+          className="flex items-center gap-2 text-accent-700 dark:text-accent-300 hover:text-accent-900 dark:hover:text-accent-100 mb-6 transition-colors"
         >
           <ArrowLeft className="w-5 h-5" />
           <span className="font-medium">Back to Login</span>
@@ -47,10 +47,10 @@ const ForgotPassword = () => {
 
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="bg-amber-100 dark:bg-amber-900/30 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Mail className="w-8 h-8 text-amber-700 dark:text-amber-300" />
+          <div className="bg-accent-100 dark:bg-accent-900/30 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Mail className="w-8 h-8 text-accent-700 dark:text-accent-300" />
           </div>
-          <h2 className="text-3xl font-bold text-amber-900 dark:text-amber-200 font-serif mb-2">
+          <h2 className="text-3xl font-bold text-accent-900 dark:text-accent-200 font-serif mb-2">
             Forgot Password?
           </h2>
           <p className="text-gray-600 dark:text-gray-400 text-sm">
@@ -61,7 +61,7 @@ const ForgotPassword = () => {
         {/* Form */}
         <form onSubmit={handleReset} className="space-y-6">
           <div>
-            <label className="block text-sm font-semibold mb-2 text-amber-900 dark:text-amber-200">
+            <label className="block text-sm font-semibold mb-2 text-accent-900 dark:text-accent-200">
               Email Address
             </label>
             <input
@@ -70,7 +70,7 @@ const ForgotPassword = () => {
               placeholder="your.email@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full p-3 text-base border border-amber-400 dark:border-amber-600 rounded-lg dark:bg-gray-700 dark:text-white bg-amber-50 focus:outline-none focus:ring-2 focus:ring-amber-500 transition-all"
+              className="w-full p-3 text-base border border-accent-400 dark:border-accent-600 rounded-lg dark:bg-gray-700 dark:text-white bg-accent-50 focus:outline-none focus:ring-2 focus:ring-accent-500 transition-all"
             />
           </div>
 
@@ -103,8 +103,8 @@ const ForgotPassword = () => {
             disabled={loading}
             className={`w-full p-3 rounded-lg font-semibold text-white transition-all duration-300 ${
               loading
-                ? 'bg-amber-400 cursor-not-allowed'
-                : 'bg-amber-700 hover:bg-amber-800 transform hover:scale-[1.02]'
+                ? 'bg-accent-400 cursor-not-allowed'
+                : 'bg-accent-700 hover:bg-accent-800 transform hover:scale-[1.02]'
             }`}
           >
             {loading ? 'Sending...' : 'Send Reset Link'}
@@ -116,7 +116,7 @@ const ForgotPassword = () => {
           Remember your password?{' '}
           <button
             onClick={() => navigate('/login')}
-            className="text-amber-700 dark:text-amber-300 font-semibold hover:underline"
+            className="text-accent-700 dark:text-accent-300 font-semibold hover:underline"
           >
             Sign in
           </button>

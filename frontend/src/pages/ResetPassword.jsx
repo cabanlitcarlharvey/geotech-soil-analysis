@@ -88,19 +88,19 @@ const ResetPassword = () => {
     <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 dark:from-gray-900 dark:via-gray-900 dark:to-slate-900 transition-colors duration-300">
       <form
         onSubmit={handleSubmit}
-        className="bg-white/95 dark:bg-gray-800/95 p-14 rounded-3xl shadow-2xl w-full max-w-xl border border-amber-700"
+        className="bg-white/95 dark:bg-gray-800/95 p-14 rounded-3xl shadow-2xl w-full max-w-xl border border-accent-700"
       >
-        <h2 className="text-4xl font-bold text-center mb-6 text-amber-900 dark:text-amber-200 font-serif">
+        <h2 className="text-4xl font-bold text-center mb-6 text-accent-900 dark:text-accent-200 font-serif">
           Reset Password
         </h2>
 
         <div className="mb-6">
-          <label className="block text-lg font-semibold mb-2 text-amber-900 dark:text-amber-200">
+          <label className="block text-lg font-semibold mb-2 text-accent-900 dark:text-accent-200">
             New Password
           </label>
           <input
             type="password"
-            className="w-full p-4 text-xl border border-amber-400 rounded-lg dark:bg-gray-700 dark:text-white bg-amber-50"
+            className="w-full p-4 text-xl border border-accent-400 rounded-lg dark:bg-gray-700 dark:text-white bg-accent-50"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
@@ -108,19 +108,19 @@ const ResetPassword = () => {
         </div>
 
         <div className="mb-6">
-          <label className="block text-lg font-semibold mb-2 text-amber-900 dark:text-amber-200">
+          <label className="block text-lg font-semibold mb-2 text-accent-900 dark:text-accent-200">
             Confirm Password
           </label>
           <input
             type="password"
-            className="w-full p-4 text-xl border border-amber-400 rounded-lg dark:bg-gray-700 dark:text-white bg-amber-50"
+            className="w-full p-4 text-xl border border-accent-400 rounded-lg dark:bg-gray-700 dark:text-white bg-accent-50"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             required
           />
         </div>
 
-        <small className="block mb-4 text-amber-800 dark:text-amber-200">
+        <small className="block mb-4 text-accent-800 dark:text-accent-200">
           Password must be {MIN_PASSWORD_LENGTH}-{MAX_PASSWORD_LENGTH} characters,
           include numbers and special characters.
         </small>
@@ -142,8 +142,8 @@ const ResetPassword = () => {
           disabled={loading}
           className={`w-full p-4 rounded-lg font-semibold text-white text-xl ${
             loading
-              ? 'bg-amber-400'
-              : 'bg-amber-700 hover:bg-amber-800'
+              ? 'bg-accent-400'
+              : 'bg-accent-700 hover:bg-accent-800'
           }`}
         >
           {loading ? 'Updating...' : 'Update Password'}

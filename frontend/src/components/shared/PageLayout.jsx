@@ -86,7 +86,7 @@ function PageLayout({ children, currentPage = 'home', requireAuth = true, userTy
   const HeaderComponent = (detectedUserType || userType) === 'expert' ? ExpertHeader : Header;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 dark:from-gray-900 dark:via-gray-900 dark:to-slate-900 text-gray-800 dark:text-gray-100 transition-colors duration-300">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800 text-slate-900 dark:text-slate-100 transition-colors duration-300">
       <HeaderComponent
         isDark={isDark} 
         toggleTheme={toggleTheme} 
@@ -94,7 +94,7 @@ function PageLayout({ children, currentPage = 'home', requireAuth = true, userTy
         currentPage={currentPage}
       />
       
-      <main className="max-w-full mx-auto mt-12 px-6 pb-12">
+      <main className="max-w-7xl mx-auto mt-8 px-4 sm:px-6 lg:px-8 pb-12">
         {children}
       </main>
     </div>

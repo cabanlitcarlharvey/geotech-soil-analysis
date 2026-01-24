@@ -18,7 +18,7 @@ function ExpertHeader({ isDark, toggleTheme, onLogout, currentPage = 'home' }) {
       icon: Home,
       label: 'Home',
       onClick: () => navigate('/expert-home'),
-      hoverColor: 'amber',
+      hoverColor: 'geotech',
       title: 'Go to Home'
     },
     {
@@ -26,14 +26,14 @@ function ExpertHeader({ isDark, toggleTheme, onLogout, currentPage = 'home' }) {
       icon: BarChart2,
       label: 'Dashboard',
       onClick: () => navigate('/expert-dashboard'),
-      hoverColor: 'green',
+      hoverColor: 'geotech',
       title: 'Validation Dashboard'
     }
   ];
 
   const getHoverClasses = (color) => {
     const colorMap = {
-      amber: 'hover:bg-amber-200 dark:hover:bg-amber-800 focus:ring-amber-500',
+      amber: 'hover:bg-accent-200 dark:hover:bg-accent-800 focus:ring-accent-500',
       green: 'hover:bg-green-200 dark:hover:bg-green-800 focus:ring-green-500',
       red: 'hover:bg-red-100 dark:hover:bg-red-800 focus:ring-red-500'
     };
@@ -42,7 +42,7 @@ function ExpertHeader({ isDark, toggleTheme, onLogout, currentPage = 'home' }) {
 
   return (
     <header 
-      className="bg-white/95 dark:bg-gray-800/95 shadow px-8 py-6 flex justify-between items-center border-b border-amber-700 transition-all duration-300" 
+      className="bg-white/95 dark:bg-gray-800/95 shadow px-8 py-6 flex justify-between items-center border-b border-accent-700 transition-all duration-300" 
       style={{ backdropFilter: 'blur(4px)' }}
     >
       {/* Logo and Title */}
@@ -60,7 +60,7 @@ function ExpertHeader({ isDark, toggleTheme, onLogout, currentPage = 'home' }) {
           <ellipse cx="24" cy="34" rx="14" ry="5" fill="#8B5E3C" />
           <ellipse cx="24" cy="28" rx="10" ry="4" fill="#C2B280" />
         </svg>
-        <h1 className="text-3xl font-bold text-amber-900 dark:text-amber-200 font-serif">
+        <h1 className="text-3xl font-bold text-accent-900 dark:text-accent-200 font-serif">
           Geotech Expert Portal
         </h1>
       </div>
@@ -83,7 +83,7 @@ function ExpertHeader({ isDark, toggleTheme, onLogout, currentPage = 'home' }) {
             key={id}
             onClick={onClick}
             className={`p-3 rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors duration-300 ${getHoverClasses(hoverColor)} ${
-              currentPage === id ? 'bg-amber-100 dark:bg-amber-900' : ''
+              currentPage === id ? 'bg-accent-100 dark:bg-accent-900' : ''
             }`}
             aria-label={title}
             title={title}

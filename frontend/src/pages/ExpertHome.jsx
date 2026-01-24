@@ -181,8 +181,8 @@ const ExpertHome = () => {
   return (
     <PageLayout currentPage="home" userType="expert">
       {/* Welcome Section */}
-      <div className="bg-white/95 dark:bg-gray-800/95 rounded-2xl shadow-2xl p-10 mb-12 border border-amber-700 transition-all duration-500 animate-in fade-in" style={{ backdropFilter: 'blur(4px)' }}>
-        <h2 className="text-4xl font-bold mb-4 text-amber-900 dark:text-amber-200 font-serif">
+      <div className="bg-white/95 dark:bg-gray-800/95 rounded-2xl shadow-2xl p-10 mb-12 border border-accent-700 transition-all duration-500 animate-in fade-in" style={{ backdropFilter: 'blur(4px)' }}>
+        <h2 className="text-4xl font-bold mb-4 text-accent-900 dark:text-accent-200 font-serif">
           Welcome, Engr. {expertName}!
         </h2>
         <p className="mb-8 text-lg text-gray-700 dark:text-gray-200">
@@ -241,23 +241,23 @@ const ExpertHome = () => {
 
       {/* Recent Analyses Section */}
       {!loading && !error && recentAnalyses.length > 0 && (
-        <div className="bg-white/95 dark:bg-gray-800/95 rounded-2xl shadow-2xl p-10 mb-12 border border-amber-700 transition-all duration-500 animate-in fade-in" style={{ backdropFilter: 'blur(4px)' }}>
-          <h3 className="text-3xl font-bold text-amber-900 dark:text-amber-200 mb-6">Recent Submissions</h3>
+        <div className="bg-white/95 dark:bg-gray-800/95 rounded-2xl shadow-2xl p-10 mb-12 border border-accent-700 transition-all duration-500 animate-in fade-in" style={{ backdropFilter: 'blur(4px)' }}>
+          <h3 className="text-3xl font-bold text-accent-900 dark:text-accent-200 mb-6">Recent Submissions</h3>
           <div className="overflow-x-auto">
             <table className="w-full text-base">
               <thead>
-                <tr className="bg-amber-100 dark:bg-amber-900">
+                <tr className="bg-accent-100 dark:bg-accent-900">
                   <th scope="col" className="px-6 py-4 text-left font-bold">Date</th>
                   <th scope="col" className="px-6 py-4 text-left font-bold">Location</th>
                   <th scope="col" className="px-6 py-4 text-left font-bold">Soil Type</th>
                   <th scope="col" className="px-6 py-4 text-left font-bold">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-amber-200 dark:divide-amber-800">
+              <tbody className="divide-y divide-accent-200 dark:divide-accent-800">
                 {recentAnalyses.map((item) => (
-                  <tr key={item.id} className="odd:bg-amber-50 even:bg-white dark:odd:bg-gray-800 dark:even:bg-gray-900 hover:bg-amber-100 dark:hover:bg-amber-800 transition-colors">
+                  <tr key={item.id} className="odd:bg-accent-50 even:bg-white dark:odd:bg-gray-800 dark:even:bg-gray-900 hover:bg-accent-100 dark:hover:bg-accent-800 transition-colors">
                     <td className="px-6 py-4">{formatDateTime(item.created_at)}</td>
-                    <td className="px-6 py-4 font-semibold text-amber-900 dark:text-amber-200">{item.location ?? '—'}</td>
+                    <td className="px-6 py-4 font-semibold text-accent-900 dark:text-accent-200">{item.location ?? '—'}</td>
                     <td className="px-6 py-4">{item.soil_type ?? '—'}</td>
                     <td className="px-6 py-4">
                       <span className={`px-3 py-2 text-sm font-bold rounded-full ${getStatusColor(item.status)}`}>
@@ -273,13 +273,13 @@ const ExpertHome = () => {
       )}
 
       {/* Data Visualization */}
-      <div className="bg-white/95 dark:bg-gray-800/95 rounded-2xl shadow-2xl p-10 border border-amber-700 transition-all duration-500 animate-in fade-in" style={{ backdropFilter: 'blur(4px)' }}>
+      <div className="bg-white/95 dark:bg-gray-800/95 rounded-2xl shadow-2xl p-10 border border-accent-700 transition-all duration-500 animate-in fade-in" style={{ backdropFilter: 'blur(4px)' }}>
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-4">
           <h3 className="text-3xl font-bold text-green-800 dark:text-green-200">Analysis Overview</h3>
           <div className="flex gap-3 w-full lg:w-auto flex-wrap">
             <button
               onClick={() => setShowPercentage(!showPercentage)}
-              className="px-5 py-3 text-base font-medium bg-amber-300 dark:bg-amber-700 text-amber-900 dark:text-amber-100 rounded-lg hover:bg-amber-400 dark:hover:bg-amber-800 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 transition-colors duration-300"
+              className="px-5 py-3 text-base font-medium bg-accent-300 dark:bg-accent-700 text-accent-900 dark:text-accent-100 rounded-lg hover:bg-accent-400 dark:hover:bg-accent-800 focus:outline-none focus:ring-2 focus:ring-accent-500 focus:ring-offset-2 transition-colors duration-300"
             >
               {showPercentage ? 'Show Count' : 'Show Percentage'}
             </button>
@@ -294,13 +294,13 @@ const ExpertHome = () => {
 
         {loading ? (
           <div className="flex flex-col items-center justify-center h-96">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-amber-700"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-accent-700"></div>
             <p className="mt-4 text-lg text-gray-700 dark:text-gray-200">Loading data...</p>
           </div>
         ) : error ? (
           <div className="text-center py-12">
             <p className="text-lg text-red-600 dark:text-red-400">{error}</p>
-            <button onClick={fetchData} className="text-amber-700 dark:text-amber-300 hover:underline mt-4">
+            <button onClick={fetchData} className="text-accent-700 dark:text-accent-300 hover:underline mt-4">
               Retry
             </button>
           </div>
@@ -343,7 +343,7 @@ const ExpertHome = () => {
 
               {/* Status Pie Chart */}
               <div>
-                <h4 className="text-2xl font-bold mb-6 text-amber-900 dark:text-amber-200">Review Status</h4>
+                <h4 className="text-2xl font-bold mb-6 text-accent-900 dark:text-accent-200">Review Status</h4>
                 {statusData.length > 0 ? (
                   <ResponsiveContainer width="100%" height={420}>
                     <PieChart>
@@ -370,7 +370,7 @@ const ExpertHome = () => {
 
             {/* Soil Type Chart */}
             <div>
-              <h4 className="text-2xl font-bold mb-6 text-amber-900 dark:text-amber-200">Soil Type Distribution</h4>
+              <h4 className="text-2xl font-bold mb-6 text-accent-900 dark:text-accent-200">Soil Type Distribution</h4>
               {soilTypeData.length > 0 ? (
                 <ResponsiveContainer width="100%" height={400}>
                   <BarChart data={soilTypeData} margin={{ top: 30, right: 40, left: 20, bottom: 100 }}>
@@ -383,7 +383,7 @@ const ExpertHome = () => {
                     </YAxis>
                     <Tooltip content={<CustomTooltip />} />
                     <Legend wrapperStyle={{ fontSize: 14, paddingTop: 20 }} />
-                    <Bar dataKey={showPercentage ? 'percentage' : 'count'} className="fill-amber-700 dark:fill-amber-400" radius={[8, 8, 0, 0]} barSize={60}>
+                    <Bar dataKey={showPercentage ? 'percentage' : 'count'} className="fill-accent-700 dark:fill-accent-400" radius={[8, 8, 0, 0]} barSize={60}>
                       <LabelList
                         dataKey={showPercentage ? 'percentage' : 'count'}
                         position="top"

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../supabaseClient';
 import { LogOut, Edit2, Sun, Moon, CheckCircle, XCircle, AlertCircle, X, Users, UserCheck, UserX, Shield } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { API_URL } from '../config';
 
 const AdminDashboard = () => {
   const [allUsers, setAllUsers] = useState([]);
@@ -98,7 +99,7 @@ const AdminDashboard = () => {
         return;
       }
 
-      const resp = await fetch('http://localhost:8000/admin/delete-user', {
+      const resp = await fetch(`${API_URL}/admin/delete-user`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -106,9 +107,9 @@ const AdminDashboard = () => {
         },
         body: JSON.stringify({ id: userId })
       });
-
+  
       const result = await resp.json();
-
+  
       if (!resp.ok) {
         showAlert(result?.detail || result?.message || 'Failed to delete account.', 'error');
       } else {
@@ -171,9 +172,9 @@ const AdminDashboard = () => {
         };
       case 'warning':
         return {
-          bg: 'bg-amber-50 dark:bg-amber-900/30 border-amber-500',
-          icon: <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400" />,
-          text: 'text-amber-800 dark:text-amber-200'
+          bg: 'bg-accent-50 dark:bg-accent-900/30 border-accent-500',
+          icon: <AlertCircle className="w-5 h-5 text-accent-600 dark:text-accent-400" />,
+          text: 'text-accent-800 dark:text-accent-200'
         };
       default:
         return {
@@ -228,18 +229,18 @@ const AdminDashboard = () => {
 
     return (
       <div className="overflow-x-auto">
-        <table className="w-full table-auto border border-amber-400 dark:border-amber-600 rounded-xl shadow-lg">
+        <table className="w-full table-auto border border-accent-400 dark:border-accent-600 rounded-xl shadow-lg">
           <thead>
-            <tr className="bg-amber-100 dark:bg-amber-900/50">
+            <tr className="bg-accent-100 dark:bg-accent-900/50">
               <th className="px-5 py-4 border-b text-left font-semibold text-gray-700 dark:text-gray-200">Full Name</th>
               <th className="px-5 py-4 border-b text-left font-semibold text-gray-700 dark:text-gray-200">Role</th>
               <th className="px-5 py-4 border-b text-left font-semibold text-gray-700 dark:text-gray-200">Status</th>
               <th className="px-5 py-4 border-b text-left font-semibold text-gray-700 dark:text-gray-200">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-amber-200 dark:divide-amber-800">
+          <tbody className="divide-y divide-accent-200 dark:divide-accent-800">
             {users.map(user => (
-              <tr key={user.id} className="bg-white dark:bg-gray-800/50 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors">
+              <tr key={user.id} className="bg-white dark:bg-gray-800/50 hover:bg-accent-50 dark:hover:bg-accent-900/20 transition-colors">
                 <td className="px-5 py-4 text-gray-800 dark:text-gray-200">
                   {user.full_name || <span className="italic text-gray-400">No name</span>}
                 </td>
@@ -258,7 +259,7 @@ const AdminDashboard = () => {
                     <select
                       value={editStatus}
                       onChange={e => setEditStatus(e.target.value)}
-                      className="p-2 rounded-lg border border-amber-400 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                      className="p-2 rounded-lg border border-accent-400 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-accent-500"
                     >
                       <option value="PENDING">PENDING</option>
                       <option value="APPROVED">APPROVED</option>
@@ -329,7 +330,7 @@ const AdminDashboard = () => {
                         )}
                         <button
                           onClick={() => handleEdit(user.id, user.status)}
-                          className="px-3 py-1.5 bg-amber-600 text-white text-sm rounded-lg hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 transition-colors font-medium flex items-center gap-1"
+                          className="px-3 py-1.5 bg-accent-600 text-white text-sm rounded-lg hover:bg-accent-700 focus:outline-none focus:ring-2 focus:ring-accent-500 transition-colors font-medium flex items-center gap-1"
                           disabled={loading}
                         >
                           <Edit2 className="w-3 h-3" /> Edit
@@ -405,7 +406,7 @@ const AdminDashboard = () => {
       )}
 
       {/* Header */}
-      <header className="bg-white/95 dark:bg-gray-800/95 shadow px-8 py-6 flex justify-between items-center border-b border-amber-700 transition-all duration-300" style={{ backdropFilter: 'blur(4px)' }}>
+      <header className="bg-white/95 dark:bg-gray-800/95 shadow px-8 py-6 flex justify-between items-center border-b border-accent-700 transition-all duration-300" style={{ backdropFilter: 'blur(4px)' }}>
       <div
           className="flex items-center gap-3 cursor-pointer group transition-transform duration-300 hover:scale-105"
           onClick={() => window.location.reload()}
@@ -420,14 +421,14 @@ const AdminDashboard = () => {
             <ellipse cx="24" cy="34" rx="14" ry="5" fill="#8B5E3C" />
             <ellipse cx="24" cy="28" rx="10" ry="4" fill="#C2B280" />
           </svg>
-          <h1 className="text-3xl font-bold text-amber-900 dark:text-amber-200 font-serif">
+          <h1 className="text-3xl font-bold text-accent-900 dark:text-accent-200 font-serif">
             Admin Portal
           </h1>
         </div>
         <div className="flex items-center gap-3">
           <button
             onClick={toggleTheme}
-            className="p-3 rounded-full hover:bg-amber-200 dark:hover:bg-amber-800 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 transition-colors duration-300"
+            className="p-3 rounded-full hover:bg-accent-200 dark:hover:bg-accent-800 focus:outline-none focus:ring-2 focus:ring-accent-500 focus:ring-offset-2 transition-colors duration-300"
             title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
           >
             {isDark ? <Moon className="w-6 h-6" /> : <Sun className="w-6 h-6" />}
@@ -516,9 +517,9 @@ const AdminDashboard = () => {
         </div>
 
         {/* User Table */}
-        <div className="bg-white/95 dark:bg-gray-800/95 rounded-2xl shadow-xl border border-amber-700 dark:border-amber-600 p-8 transition-all duration-300" style={{ backdropFilter: 'blur(4px)' }}>
+        <div className="bg-white/95 dark:bg-gray-800/95 rounded-2xl shadow-xl border border-accent-700 dark:border-accent-600 p-8 transition-all duration-300" style={{ backdropFilter: 'blur(4px)' }}>
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-3xl font-bold text-amber-900 dark:text-amber-200">
+            <h2 className="text-3xl font-bold text-accent-900 dark:text-accent-200">
               {activeTab === 'all' && 'All Users'}
               {activeTab === 'pending' && 'Pending Accounts'}
               {activeTab === 'approved' && 'Approved Users'}
@@ -532,7 +533,7 @@ const AdminDashboard = () => {
 
           {loading ? (
             <div className="flex flex-col justify-center items-center h-64">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-amber-600"></div>
+              <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-accent-600"></div>
               <span className="mt-4 text-lg text-gray-700 dark:text-gray-200">Loading users...</span>
             </div>
           ) : (
