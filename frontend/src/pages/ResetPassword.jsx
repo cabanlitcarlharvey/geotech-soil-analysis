@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { useNavigate } from 'react-router-dom';
+import { Sun, Moon } from 'lucide-react';
 
 const MIN_PASSWORD_LENGTH = 6;
 const MAX_PASSWORD_LENGTH = 12;
@@ -13,9 +14,14 @@ const ResetPassword = () => {
   const [errors, setErrors] = useState([]);
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isDark, setIsDark] = useState(localStorage.getItem('theme') === 'dark');
   const navigate = useNavigate();
 
   useEffect(() => {
+    const theme = localStorage.getItem('theme') || 'light';
+    document.documentElement.classList.toggle('dark', theme === 'dark');
+    setIsDark(theme === 'dark');
+
     const verifySession = async () => {
       const { data: { session }, error } = await supabase.auth.getSession();
       
@@ -27,6 +33,13 @@ const ResetPassword = () => {
     
     verifySession();
   }, [navigate]);
+
+  const toggleTheme = () => {
+    const newTheme = isDark ? 'light' : 'dark';
+    localStorage.setItem('theme', newTheme);
+    document.documentElement.classList.toggle('dark', newTheme === 'dark');
+    setIsDark(!isDark);
+  };
 
   const validatePassword = (pwd) => {
     const errs = [];
@@ -86,9 +99,19 @@ const ResetPassword = () => {
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 dark:from-gray-900 dark:via-gray-900 dark:to-slate-900 transition-colors duration-300">
+      {/* Theme Toggle Button */}
+      <button
+        onClick={toggleTheme}
+        className="fixed top-4 right-4 z-50 p-3 rounded-full bg-white/90 dark:bg-slate-800/90 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-110 border border-slate-200/50 dark:border-slate-700/50 text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400"
+        aria-label="Toggle theme"
+        title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
+      >
+        {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+      </button>
+
       <form
         onSubmit={handleSubmit}
-        className="bg-white/95 dark:bg-gray-800/95 p-14 rounded-3xl shadow-2xl w-full max-w-xl border border-accent-700"
+        className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl p-14 rounded-3xl shadow-2xl w-full max-w-xl border border-slate-200/50 dark:border-slate-700/50"
       >
         <h2 className="text-4xl font-bold text-center mb-6 text-accent-900 dark:text-accent-200 font-serif">
           Reset Password

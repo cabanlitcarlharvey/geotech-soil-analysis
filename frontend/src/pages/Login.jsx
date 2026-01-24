@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { useNavigate, Link } from 'react-router-dom';
-import { Eye, EyeOff, Home } from 'lucide-react';
+import { Eye, EyeOff, Home, Sun, Moon } from 'lucide-react';
 
 const Login = () => {
   const [form, setForm] = useState({ email: '', password: '' });
@@ -9,12 +9,14 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
+  const [isDark, setIsDark] = useState(localStorage.getItem('theme') === 'dark');
   const navigate = useNavigate();
 
   // ✅ SIMPLIFIED: Only set theme, let ProtectedRoute handle session
   useEffect(() => {
     const theme = localStorage.getItem('theme') || 'light';
     document.documentElement.classList.toggle('dark', theme === 'dark');
+    setIsDark(theme === 'dark');
     
     // Quick check: if already logged in, redirect
     const quickCheck = async () => {
@@ -41,6 +43,13 @@ const Login = () => {
     
     quickCheck();
   }, [navigate]);
+
+  const toggleTheme = () => {
+    const newTheme = isDark ? 'light' : 'dark';
+    localStorage.setItem('theme', newTheme);
+    document.documentElement.classList.toggle('dark', newTheme === 'dark');
+    setIsDark(!isDark);
+  };
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -121,6 +130,17 @@ const Login = () => {
       <Home className="w-5 h-5" />
       <span className="hidden sm:inline text-sm font-medium">Home</span>
     </button>
+
+    {/* Theme Toggle Button */}
+    <button
+      onClick={toggleTheme}
+      className="fixed top-4 right-4 z-50 p-3 rounded-full bg-white/90 dark:bg-slate-800/90 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-110 border border-slate-200/50 dark:border-slate-700/50 text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400"
+      aria-label="Toggle theme"
+      title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
+    >
+      {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+    </button>
+
       <form
         onSubmit={handleSubmit}
         className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl p-8 sm:p-12 rounded-2xl shadow-xl w-full max-w-md transition-all border border-slate-200/50 dark:border-slate-700/50"
