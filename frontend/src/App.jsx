@@ -10,6 +10,7 @@ import ExpertHome from './pages/ExpertHome';
 import AdminDashboard from './pages/AdminDashboard';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
+import LandingPage from './pages/LandingPage';
 
 function App() {
   return (
@@ -18,7 +19,7 @@ function App() {
         {/* ============================================ */}
         {/* PUBLIC ROUTES (No authentication required) */}
         {/* ============================================ */}
-        <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
