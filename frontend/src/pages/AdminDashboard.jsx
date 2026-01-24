@@ -40,17 +40,48 @@ const AdminDashboard = () => {
 
   const fetchAllUsers = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('id, full_name, role, status')
-      .order('created_at', { ascending: false });
-    if (error) {
+    try {
+      // Fetch all users
+      const { data: usersData, error: usersError } = await supabase
+        .from('profiles')
+        .select('id, full_name, role, status')
+        .order('created_at', { ascending: false });
+      
+      if (usersError) {
+        showAlert('Error fetching users.', 'error');
+        setAllUsers([]);
+        setLoading(false);
+        return;
+      }
+  
+      // Check if each user has records in soil_analysis_results
+      const usersWithRecordStatus = await Promise.all(
+        (usersData || []).map(async (user) => {
+          // Check if user has any records in soil_analysis_results
+          const { data: recordsData, error: recordsError } = await supabase
+            .from('soil_analysis_results')
+            .select('id')
+            .eq('engineer_id', user.id)
+            .limit(1);
+          
+          // hasRecords is true if there's at least one record
+          const hasRecords = !recordsError && recordsData && recordsData.length > 0;
+          
+          return {
+            ...user,
+            hasRecords: hasRecords
+          };
+        })
+      );
+  
+      setAllUsers(usersWithRecordStatus);
+    } catch (err) {
+      console.error('Error fetching users:', err);
       showAlert('Error fetching users.', 'error');
       setAllUsers([]);
-    } else {
-      setAllUsers(data || []);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleApprove = async (id) => {
@@ -319,7 +350,7 @@ const AdminDashboard = () => {
                             </button>
                           </>
                         )}
-                        {user.status !== 'PENDING' && user.role !== 'admin' && (
+                        {user.status !== 'PENDING' && user.role !== 'admin' && !user.hasRecords && (
                           <button
                             onClick={() => handleDeleteClick(user.id, user.role, user.full_name)}
                             className="px-3 py-1.5 bg-gray-600 text-white text-sm rounded-lg hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors font-medium"
