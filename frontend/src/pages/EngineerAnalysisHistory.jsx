@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
-import { Download, Trash2, X } from 'lucide-react';
+import { Download, Trash2, X, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
 import Papa from 'papaparse';
 import { DateTime } from 'luxon';
 import PageLayout from '../components/shared/PageLayout';
@@ -15,12 +15,17 @@ const EngineerAnalysisHistory = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalType, setModalType] = useState(null);
   const [selectedAnalysisId, setSelectedAnalysisId] = useState(null);
+  const [selectedAnalysis, setSelectedAnalysis] = useState(null);
   const [selectedReviews, setSelectedReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [reviewLoading, setReviewLoading] = useState(false);
   const [reviewError, setReviewError] = useState(null);
   const [deleteError, setDeleteError] = useState(null);
+  
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   const fetchHistory = async () => {
     setLoading(true);
@@ -84,6 +89,7 @@ const EngineerAnalysisHistory = () => {
         )
       );
     }
+    setCurrentPage(1); // Reset to first page when filters change
   }, [filter, searchQuery, analyses]);
 
   const formatDateTime = (utcDate) => {
@@ -166,6 +172,12 @@ const EngineerAnalysisHistory = () => {
     setModalOpen(true);
   };
 
+  const openDetailsModal = (analysis) => {
+    setModalType('details');
+    setSelectedAnalysis(analysis);
+    setModalOpen(true);
+  };
+
   const openDeleteModal = (analysisId) => {
     setModalType('delete');
     setSelectedAnalysisId(analysisId);
@@ -176,6 +188,7 @@ const EngineerAnalysisHistory = () => {
     setModalOpen(false);
     setModalType(null);
     setSelectedAnalysisId(null);
+    setSelectedAnalysis(null);
     setSelectedReviews([]);
     setReviewError(null);
     setDeleteError(null);
@@ -218,6 +231,23 @@ const EngineerAnalysisHistory = () => {
       default:
         return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300';
     }
+  };
+
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredAnalyses.length / rowsPerPage);
+  const startIndex = (currentPage - 1) * rowsPerPage;
+  const endIndex = startIndex + rowsPerPage;
+  const currentAnalyses = filteredAnalyses.slice(startIndex, endIndex);
+
+  const handlePageChange = (newPage) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setCurrentPage(newPage);
+    }
+  };
+
+  const handleRowsPerPageChange = (e) => {
+    setRowsPerPage(Number(e.target.value));
+    setCurrentPage(1);
   };
 
   return (
@@ -297,103 +327,160 @@ const EngineerAnalysisHistory = () => {
             </div>
           </div>
         ) : filteredAnalyses.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table
-              className="w-full table-auto border border-accent-400 dark:border-accent-600 text-base"
-              role="grid"
-              aria-describedby="analysis-history-caption"
-            >
-              <caption id="analysis-history-caption" className="sr-only">
-                History of soil analysis results submitted by the engineer
-              </caption>
-              <thead>
-                <tr className="bg-accent-100 dark:bg-accent-900 sticky top-0 z-10">
-                  <th scope="col" className="px-6 py-4 text-left font-bold">Date</th>
-                  <th scope="col" className="px-6 py-4 text-left font-bold">Location</th>
-                  <th scope="col" className="px-6 py-4 text-left font-bold">Total Weight (g)</th>
-                  <th scope="col" className="px-6 py-4 text-left font-bold">Gravel Weight (g)</th>
-                  <th scope="col" className="px-6 py-4 text-left font-bold">Sand Weight (g)</th>
-                  <th scope="col" className="px-6 py-4 text-left font-bold">Gravel %</th>
-                  <th scope="col" className="px-6 py-4 text-left font-bold">Sand %</th>
-                  <th scope="col" className="px-6 py-4 text-left font-bold">Fines %</th>
-                  <th scope="col" className="px-6 py-4 text-left font-bold">USCS Soil Type</th>
-                  <th scope="col" className="px-6 py-4 text-left font-bold">Predicted Soil Type</th>
-                  <th scope="col" className="px-6 py-4 text-left font-bold">Image</th>
-                  <th scope="col" className="px-6 py-4 text-left font-bold">Status</th>
-                  <th scope="col" className="px-6 py-4 text-left font-bold">Reviews</th>
-                  <th scope="col" className="px-6 py-4 text-left font-bold">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-accent-200 dark:divide-accent-800">
-                {filteredAnalyses.map((item) => (
-                  <tr key={item.id} className="odd:bg-accent-50 even:bg-white dark:odd:bg-gray-800 dark:even:bg-gray-900 hover:bg-accent-100 dark:hover:bg-accent-800 transition-colors duration-300">
-                    <td className="px-6 py-4">{formatDateTime(item.created_at)}</td>
-                    <td className="px-6 py-4 font-semibold text-accent-900 dark:text-accent-200">{item.location ?? '—'}</td>
-                    <td className="px-6 py-4">{item.total_weight ? item.total_weight.toFixed(2) : '—'}</td>
-                    <td className="px-6 py-4">{item.gravel_weight ? item.gravel_weight.toFixed(2) : '—'}</td>
-                    <td className="px-6 py-4">{item.sand_weight ? item.sand_weight.toFixed(2) : '—'}</td>
-                    <td className="px-6 py-4">{item.gravel_percent ? `${item.gravel_percent.toFixed(2)}%` : '—'}</td>
-                    <td className="px-6 py-4">{item.sand_percent ? `${item.sand_percent.toFixed(2)}%` : '—'}</td>
-                    <td className="px-6 py-4">{item.fines_percent ? `${item.fines_percent.toFixed(2)}%` : '—'}</td>
-                    <td className="px-6 py-4">{item.soil_type ?? '—'}</td>
-                    <td className="px-6 py-4">{item.predicted_soil_type ?? 'Not provided'}</td>
-                    <td className="px-6 py-4">
-                      {item.image_soil_type && (item.image_soil_type.startsWith('http') || item.image_soil_type.startsWith('https')) ? (
-                        <img
-                          src={item.image_soil_type}
-                          alt={`Soil image for ${item.soil_type}`}
-                          className="h-16 w-16 object-cover rounded border border-accent-400 cursor-pointer hover:scale-110 transition-transform duration-300"
-                          onClick={() => window.open(item.image_soil_type, '_blank')}
-                          title="Click to view full size"
-                        />
-                      ) : (
-                        <span className="italic text-gray-400">No image</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <span
-                        className={`px-3 py-2 text-sm font-bold rounded-full transition-all duration-300 ${getStatusBadgeClass(item.status)}`}
-                        aria-label={`Status: ${item.status ?? 'PENDING'}`}
-                      >
-                        {item.status ?? 'PENDING'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      {item.review_count > 0 ? (
-                        <div className="flex items-center gap-3">
-                          <button
-                            onClick={() => openReviewModal(item.id)}
-                            className="px-4 py-2 text-sm font-medium bg-accent-700 text-white rounded-lg hover:bg-accent-800 focus:outline-none focus:ring-2 focus:ring-accent-500 focus:ring-offset-2 transition-all duration-300 transform hover:scale-105"
-                            aria-label={`View ${item.review_count} reviews for analysis ${item.id}`}
-                          >
-                            View Review
-                          </button>
-                          <span className="bg-accent-100 text-accent-800 text-sm font-bold px-3 py-2 rounded-lg dark:bg-accent-900 dark:text-accent-300">
-                            {item.review_count}
-                          </span>
-                        </div>
-                      ) : (
-                        '—'
-                      )}
-                    </td>
-                    <td className="px-6 py-4">
-                      {['PENDING', 'DISAPPROVED'].includes(item.status?.toUpperCase()) ? (
-                        <button
-                          onClick={() => openDeleteModal(item.id)}
-                          className="flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium bg-red-600 text-white rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-all duration-300 transform hover:scale-105 w-full"
-                          aria-label={`Delete analysis ${item.id}`}
-                        >
-                          <Trash2 className="w-4 h-4" /> Delete
-                        </button>
-                      ) : (
-                        '—'
-                      )}
-                    </td>
+          <>
+            <div className="overflow-x-auto">
+              <table
+                className="w-full table-auto border border-accent-400 dark:border-accent-600 text-base"
+                role="grid"
+                aria-describedby="analysis-history-caption"
+              >
+                <caption id="analysis-history-caption" className="sr-only">
+                  History of soil analysis results submitted by the engineer
+                </caption>
+                <thead>
+                  <tr className="bg-accent-100 dark:bg-accent-900 sticky top-0 z-10">
+                    <th scope="col" className="px-6 py-4 text-left font-bold">Date</th>
+                    <th scope="col" className="px-6 py-4 text-left font-bold">Location</th>
+                    <th scope="col" className="px-6 py-4 text-left font-bold">USCS Soil Type</th>
+                    <th scope="col" className="px-6 py-4 text-left font-bold">Status</th>
+                    <th scope="col" className="px-6 py-4 text-left font-bold">Reviews</th>
+                    <th scope="col" className="px-6 py-4 text-left font-bold">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-accent-200 dark:divide-accent-800">
+                  {currentAnalyses.map((item) => (
+                    <tr key={item.id} className="odd:bg-accent-50 even:bg-white dark:odd:bg-gray-800 dark:even:bg-gray-900 hover:bg-accent-100 dark:hover:bg-accent-800 transition-colors duration-300">
+                      <td className="px-6 py-4">{formatDateTime(item.created_at)}</td>
+                      <td className="px-6 py-4 font-semibold text-accent-900 dark:text-accent-200">{item.location ?? '—'}</td>
+                      <td className="px-6 py-4">{item.soil_type ?? '—'}</td>
+                      <td className="px-6 py-4 text-center">
+                        <span
+                          className={`px-3 py-2 text-sm font-bold rounded-full transition-all duration-300 ${getStatusBadgeClass(item.status)}`}
+                          aria-label={`Status: ${item.status ?? 'PENDING'}`}
+                        >
+                          {item.status ?? 'PENDING'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        {item.review_count > 0 ? (
+                          <div className="flex items-center gap-3">
+                            <button
+                              onClick={() => openReviewModal(item.id)}
+                              className="px-4 py-2 text-sm font-medium bg-accent-700 text-white rounded-lg hover:bg-accent-800 focus:outline-none focus:ring-2 focus:ring-accent-500 focus:ring-offset-2 transition-all duration-300 transform hover:scale-105"
+                              aria-label={`View ${item.review_count} reviews for analysis ${item.id}`}
+                            >
+                              View Review
+                            </button>
+                            <span className="bg-accent-100 text-accent-800 text-sm font-bold px-3 py-2 rounded-lg dark:bg-accent-900 dark:text-accent-300">
+                              {item.review_count}
+                            </span>
+                          </div>
+                        ) : (
+                          '—'
+                        )}
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => openDetailsModal(item)}
+                            className="flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-300 transform hover:scale-105"
+                            aria-label={`View full details for analysis ${item.id}`}
+                          >
+                            <Eye className="w-4 h-4" /> View Details
+                          </button>
+                          {['PENDING', 'DISAPPROVED'].includes(item.status?.toUpperCase()) && (
+                            <button
+                              onClick={() => openDeleteModal(item.id)}
+                              className="flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium bg-red-600 text-white rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-all duration-300 transform hover:scale-105"
+                              aria-label={`Delete analysis ${item.id}`}
+                            >
+                              <Trash2 className="w-4 h-4" /> Delete
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination Controls */}
+            <div className="flex flex-col md:flex-row items-center justify-between mt-6 gap-4">
+              <div className="flex items-center gap-2">
+                <label htmlFor="rows-per-page" className="text-sm text-gray-700 dark:text-gray-300">
+                  Rows per page:
+                </label>
+                <select
+                  id="rows-per-page"
+                  value={rowsPerPage}
+                  onChange={handleRowsPerPageChange}
+                  className="border border-accent-400 dark:border-accent-600 rounded-lg px-3 py-2 bg-accent-50 dark:bg-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-accent-500"
+                >
+                  <option value={10}>10</option>
+                  <option value={15}>15</option>
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                </select>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-700 dark:text-gray-300">
+                  Showing {startIndex + 1} to {Math.min(endIndex, filteredAnalyses.length)} of {filteredAnalyses.length} entries
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="p-2 rounded-lg bg-accent-100 dark:bg-accent-800 text-accent-900 dark:text-accent-100 hover:bg-accent-200 dark:hover:bg-accent-700 focus:outline-none focus:ring-2 focus:ring-accent-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"
+                  aria-label="Previous page"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                    // Show first page, last page, current page, and pages around current page
+                    if (
+                      page === 1 ||
+                      page === totalPages ||
+                      (page >= currentPage - 1 && page <= currentPage + 1)
+                    ) {
+                      return (
+                        <button
+                          key={page}
+                          onClick={() => handlePageChange(page)}
+                          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
+                            currentPage === page
+                              ? 'bg-accent-700 text-white'
+                              : 'bg-accent-100 dark:bg-accent-800 text-accent-900 dark:text-accent-100 hover:bg-accent-200 dark:hover:bg-accent-700'
+                          } focus:outline-none focus:ring-2 focus:ring-accent-500`}
+                          aria-label={`Go to page ${page}`}
+                          aria-current={currentPage === page ? 'page' : undefined}
+                        >
+                          {page}
+                        </button>
+                      );
+                    } else if (page === currentPage - 2 || page === currentPage + 2) {
+                      return <span key={page} className="px-2 text-gray-500">...</span>;
+                    }
+                    return null;
+                  })}
+                </div>
+
+                <button
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="p-2 rounded-lg bg-accent-100 dark:bg-accent-800 text-accent-900 dark:text-accent-100 hover:bg-accent-200 dark:hover:bg-accent-700 focus:outline-none focus:ring-2 focus:ring-accent-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"
+                  aria-label="Next page"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+          </>
         ) : (
           <div className="text-center py-12">
             <div className="flex flex-col items-center gap-4">
@@ -413,7 +500,7 @@ const EngineerAnalysisHistory = () => {
         )}
       </div>
 
-      {/* Modal for Review or Delete */}
+      {/* Modal for Review, Details, or Delete */}
       {modalOpen && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 transition-opacity duration-300" onClick={closeModal}>
           <div
@@ -423,7 +510,7 @@ const EngineerAnalysisHistory = () => {
             {/* Modal Header */}
             <div className="flex justify-between items-center px-8 py-6 border-b border-accent-200 dark:border-accent-700">
               <h3 className="text-2xl font-bold text-accent-900 dark:text-accent-200">
-                {modalType === 'review' ? 'Review Details' : 'Confirm Deletion'}
+                {modalType === 'review' ? 'Review Details' : modalType === 'details' ? 'Full Analysis Details' : 'Confirm Deletion'}
               </h3>
               <button
                 onClick={closeModal}
@@ -469,7 +556,109 @@ const EngineerAnalysisHistory = () => {
                     </p>
                   )}
                 </>
-              ) : (
+              ) : modalType === 'details' && selectedAnalysis ? (
+                <div className="space-y-6">
+                  {/* Basic Information */}
+                  <div className="bg-accent-50 dark:bg-gray-700 p-6 rounded-lg">
+                    <h4 className="text-xl font-bold text-accent-900 dark:text-accent-200 mb-4">Basic Information</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">Date</p>
+                        <p className="text-base font-semibold text-gray-900 dark:text-gray-100">{formatDateTime(selectedAnalysis.created_at)}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">Location</p>
+                        <p className="text-base font-semibold text-gray-900 dark:text-gray-100">{selectedAnalysis.location ?? 'Not provided'}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">Status</p>
+                        <span className={`inline-block px-3 py-1 text-sm font-bold rounded-full ${getStatusBadgeClass(selectedAnalysis.status)}`}>
+                          {selectedAnalysis.status ?? 'PENDING'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Weight Measurements */}
+                  <div className="bg-accent-50 dark:bg-gray-700 p-6 rounded-lg">
+                    <h4 className="text-xl font-bold text-accent-900 dark:text-accent-200 mb-4">Weight Measurements</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">Total Weight</p>
+                        <p className="text-base font-semibold text-gray-900 dark:text-gray-100">
+                          {selectedAnalysis.total_weight ? `${selectedAnalysis.total_weight.toFixed(2)} g` : '—'}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">Gravel Weight</p>
+                        <p className="text-base font-semibold text-gray-900 dark:text-gray-100">
+                          {selectedAnalysis.gravel_weight ? `${selectedAnalysis.gravel_weight.toFixed(2)} g` : '—'}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">Sand Weight</p>
+                        <p className="text-base font-semibold text-gray-900 dark:text-gray-100">
+                          {selectedAnalysis.sand_weight ? `${selectedAnalysis.sand_weight.toFixed(2)} g` : '—'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Composition Percentages */}
+                  <div className="bg-accent-50 dark:bg-gray-700 p-6 rounded-lg">
+                    <h4 className="text-xl font-bold text-accent-900 dark:text-accent-200 mb-4">Composition Percentages</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">Gravel %</p>
+                        <p className="text-base font-semibold text-gray-900 dark:text-gray-100">
+                          {selectedAnalysis.gravel_percent ? `${selectedAnalysis.gravel_percent.toFixed(2)}%` : '—'}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">Sand %</p>
+                        <p className="text-base font-semibold text-gray-900 dark:text-gray-100">
+                          {selectedAnalysis.sand_percent ? `${selectedAnalysis.sand_percent.toFixed(2)}%` : '—'}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">Fines %</p>
+                        <p className="text-base font-semibold text-gray-900 dark:text-gray-100">
+                          {selectedAnalysis.fines_percent ? `${selectedAnalysis.fines_percent.toFixed(2)}%` : '—'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Soil Classification */}
+                  <div className="bg-accent-50 dark:bg-gray-700 p-6 rounded-lg">
+                    <h4 className="text-xl font-bold text-accent-900 dark:text-accent-200 mb-4">Soil Classification</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">USCS Soil Type</p>
+                        <p className="text-base font-semibold text-gray-900 dark:text-gray-100">{selectedAnalysis.soil_type ?? '—'}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">Predicted Soil Type</p>
+                        <p className="text-base font-semibold text-gray-900 dark:text-gray-100">{selectedAnalysis.predicted_soil_type ?? 'Not provided'}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Image */}
+                  {selectedAnalysis.image_soil_type && (selectedAnalysis.image_soil_type.startsWith('http') || selectedAnalysis.image_soil_type.startsWith('https')) && (
+                    <div className="bg-accent-50 dark:bg-gray-700 p-6 rounded-lg">
+                      <h4 className="text-xl font-bold text-accent-900 dark:text-accent-200 mb-4">Soil Sample Image</h4>
+                      <img
+                        src={selectedAnalysis.image_soil_type}
+                        alt={`Soil sample for ${selectedAnalysis.soil_type}`}
+                        className="w-full max-w-md mx-auto rounded-lg border border-accent-400 cursor-pointer hover:scale-105 transition-transform duration-300"
+                        onClick={() => window.open(selectedAnalysis.image_soil_type, '_blank')}
+                        title="Click to view full size"
+                      />
+                    </div>
+                  )}
+                </div>
+              ) : modalType === 'delete' ? (
                 <>
                   {deleteError ? (
                     <p className="text-lg text-red-600 dark:text-red-400 mb-6">{deleteError}</p>
@@ -483,7 +672,7 @@ const EngineerAnalysisHistory = () => {
                     </p>
                   )}
                 </>
-              )}
+              ) : null}
             </div>
 
             {/* Modal Footer */}
@@ -491,9 +680,9 @@ const EngineerAnalysisHistory = () => {
               <button
                 onClick={closeModal}
                 className="px-6 py-3 text-base font-medium bg-accent-300 dark:bg-accent-700 text-accent-900 dark:text-accent-100 rounded-lg hover:bg-accent-400 dark:hover:bg-accent-800 focus:outline-none focus:ring-2 focus:ring-accent-500 focus:ring-offset-2 transition-all duration-300"
-                aria-label={modalType === 'review' ? 'Close review modal' : 'Cancel deletion'}
+                aria-label={modalType === 'review' ? 'Close review modal' : modalType === 'details' ? 'Close details modal' : 'Cancel deletion'}
               >
-                {modalType === 'review' ? 'Close' : 'Cancel'}
+                {modalType === 'delete' ? 'Cancel' : 'Close'}
               </button>
               {modalType === 'delete' && (
                 <button

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../supabaseClient';
-import { Sun, Moon, LogOut, Home, X } from 'lucide-react';
+import { Sun, Moon, LogOut, Home, X, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { DateTime } from 'luxon';
 import PageLayout from '../components/shared/PageLayout';
@@ -25,6 +25,14 @@ const ExpertDashboard = () => {
   const [engineerNameMap, setEngineerNameMap] = useState({});
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleteTargetId, setDeleteTargetId] = useState(null);
+  const [detailsModalOpen, setDetailsModalOpen] = useState(false);
+  const [selectedAnalysisDetails, setSelectedAnalysisDetails] = useState(null);
+  const [reviewInDetailsModal, setReviewInDetailsModal] = useState('');
+  const [statusInDetailsModal, setStatusInDetailsModal] = useState('');
+  
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   useEffect(() => {
     const getUserAndReviews = async () => {
@@ -145,6 +153,7 @@ const ExpertDashboard = () => {
       );
     }
     setFilteredAnalyses(filtered);
+    setCurrentPage(1); // Reset to first page when filters change
   };
 
   const toggleTheme = () => {
@@ -187,6 +196,20 @@ const ExpertDashboard = () => {
       setReviewComments((prev) => ({ ...prev, [idToClear]: '' }));
     }
     setSelectedStatus('');
+  };
+
+  const openDetailsModal = (analysis) => {
+    setSelectedAnalysisDetails(analysis);
+    setStatusInDetailsModal(analysis?.status || 'PENDING');
+    setReviewInDetailsModal(userReviewMap[analysis.id]?.comments || '');
+    setDetailsModalOpen(true);
+  };
+
+  const closeDetailsModal = () => {
+    setDetailsModalOpen(false);
+    setSelectedAnalysisDetails(null);
+    setReviewInDetailsModal('');
+    setStatusInDetailsModal('');
   };
 
   const handleReviewChange = (comment) => {
@@ -272,6 +295,81 @@ const ExpertDashboard = () => {
     }
   };
 
+  const handleReviewSubmitFromDetails = async () => {
+    const comment = reviewInDetailsModal?.trim();
+    if (!comment) {
+      showNotification('warning', 'Please enter a review comment.');
+      return;
+    }
+    if (!statusInDetailsModal) {
+      showNotification('warning', 'Please select a status.');
+      return;
+    }
+
+    try {
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+      if (authError || !user) {
+        console.error('Authentication error:', authError);
+        showNotification('error', 'You must be logged in to submit a review.');
+        return;
+      }
+
+      const { error: upsertError } = await supabase
+        .from('analysis_reviews')
+        .upsert(
+          [
+            {
+              analysis_id: selectedAnalysisDetails.id,
+              reviewer_id: user.id,
+              comments: comment,
+              reviewed_at: new Date().toISOString(),
+            },
+          ],
+          {
+            onConflict: ['analysis_id', 'reviewer_id'],
+          }
+        );
+
+      if (upsertError) {
+        console.error('Review upsert error:', upsertError);
+        showNotification('error', 'Error submitting review.');
+      } else {
+        const statusToSave = statusInDetailsModal || 'PENDING';
+        const { error: statusError } = await supabase
+          .from('soil_analysis_results')
+          .update({ status: statusToSave })
+          .eq('id', selectedAnalysisDetails.id);
+
+        if (statusError) {
+          console.error('Status update error:', statusError);
+          showNotification('error', 'Review saved but updating status failed.');
+          return;
+        }
+
+        setAnalyses((prev) =>
+          prev.map((analysis) =>
+            analysis.id === selectedAnalysisDetails.id ? { ...analysis, status: statusToSave } : analysis
+          )
+        );
+        setFilteredAnalyses((prev) =>
+          prev.map((analysis) =>
+            analysis.id === selectedAnalysisDetails.id ? { ...analysis, status: statusToSave } : analysis
+          )
+        );
+        showNotification('success', 'Review and status updated successfully.');
+        setUserReviewMap((prev) => ({
+          ...prev,
+          [selectedAnalysisDetails.id]: { analysis_id: selectedAnalysisDetails.id, comments: comment }
+        }));
+        closeDetailsModal();
+      }
+    } catch (err) {
+      console.error('Unexpected error:', err);
+      showNotification('error', 'An unexpected error occurred.');
+    }
+  };
+
   const openDeleteModal = (analysisId) => {
     setDeleteTargetId(analysisId);
     setDeleteModalOpen(true);
@@ -331,6 +429,23 @@ const ExpertDashboard = () => {
   };
 
   const uniqueSoilTypes = Array.from(new Set(analyses.map((a) => a.soil_type))).filter(Boolean);
+
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredAnalyses.length / rowsPerPage);
+  const startIndex = (currentPage - 1) * rowsPerPage;
+  const endIndex = startIndex + rowsPerPage;
+  const currentAnalyses = filteredAnalyses.slice(startIndex, endIndex);
+
+  const handlePageChange = (newPage) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setCurrentPage(newPage);
+    }
+  };
+
+  const handleRowsPerPageChange = (e) => {
+    setRowsPerPage(Number(e.target.value));
+    setCurrentPage(1);
+  };
 
   return (
     <PageLayout currentPage="dashboard" userType="expert">
@@ -459,124 +574,162 @@ const ExpertDashboard = () => {
               </div>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table
-                className="w-full table-auto border border-accent-400 dark:border-accent-600 text-base"
-                role="grid"
-                aria-describedby="analysis-records-caption"
-              >
-                <caption id="analysis-records-caption" className="sr-only">
-                  Soil analysis records for expert review
-                </caption>
-                <thead>
-                  <tr className="bg-accent-100 dark:bg-accent-900 sticky top-0 z-10">
-                    <th scope="col" className="px-6 py-4 text-left font-bold">Analysis ID</th>
-                    <th scope="col" className="px-6 py-4 text-left font-bold">Staff Name</th>
-                    <th scope="col" className="px-6 py-4 text-left font-bold">Location</th>
-                    <th scope="col" className="px-6 py-4 text-left font-bold">Total Weight (g)</th>
-                    <th scope="col" className="px-6 py-4 text-left font-bold">Gravel Weight (g)</th>
-                    <th scope="col" className="px-6 py-4 text-left font-bold">Sand Weight (g)</th>
-                    <th scope="col" className="px-6 py-4 text-left font-bold">Gravel %</th>
-                    <th scope="col" className="px-6 py-4 text-left font-bold">Sand %</th>
-                    <th scope="col" className="px-6 py-4 text-left font-bold">Fines %</th>
-                    <th scope="col" className="px-6 py-4 text-left font-bold">USCS Soil Type</th>
-                    <th scope="col" className="px-6 py-4 text-left font-bold">Predicted Type</th>
-                    <th scope="col" className="px-6 py-4 text-left font-bold">Image</th>
-                    <th scope="col" className="px-6 py-4 text-left font-bold">Captured</th>
-                    <th scope="col" className="px-6 py-4 text-left font-bold">Status</th>
-                    <th scope="col" className="px-6 py-4 text-left font-bold">Review</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-accent-200 dark:divide-accent-800">
-                  {filteredAnalyses.map((analysis) => (
-                    <tr key={analysis.id} className="odd:bg-accent-50 even:bg-white dark:odd:bg-gray-800 dark:even:bg-gray-900 hover:bg-accent-100 dark:hover:bg-accent-800 transition-colors duration-300">
-                      <td className="px-6 py-4 font-semibold">{analysis.id}</td>
-                      <td className="px-6 py-4">{engineerNameMap[analysis.engineer_id] || analysis.engineer_id || '—'}</td>
-                      <td className="px-6 py-4 font-semibold text-accent-900 dark:text-accent-200">{analysis.location ?? '—'}</td>
-                      <td className="px-6 py-4">{analysis.total_weight ? analysis.total_weight.toFixed(2) : '—'}</td>
-                      <td className="px-6 py-4">{analysis.gravel_weight ? analysis.gravel_weight.toFixed(2) : '—'}</td>
-                      <td className="px-6 py-4">{analysis.sand_weight ? analysis.sand_weight.toFixed(2) : '—'}</td>
-                      <td className="px-6 py-4">{analysis.gravel_percent ? `${analysis.gravel_percent.toFixed(2)}%` : '—'}</td>
-                      <td className="px-6 py-4">{analysis.sand_percent ? `${analysis.sand_percent.toFixed(2)}%` : '—'}</td>
-                      <td className="px-6 py-4">{analysis.fines_percent ? `${analysis.fines_percent.toFixed(2)}%` : '—'}</td>
-                      <td className="px-6 py-4 font-bold">{analysis.soil_type ?? '—'}</td>
-                      <td className="px-6 py-4">{analysis.predicted_soil_type ?? 'Not provided'}</td>
-                      <td className="px-6 py-4">
-                        {analysis.image_soil_type && 
-                         (analysis.image_soil_type.startsWith('http') || analysis.image_soil_type.startsWith('https')) ? (
-                          <img
-                            src={analysis.image_soil_type}
-                            alt={`Soil image for ${analysis.soil_type}`}
-                            className="h-16 w-16 object-cover rounded border border-accent-400 cursor-pointer hover:scale-110 transition-transform duration-300"
-                            onClick={() => window.open(analysis.image_soil_type, '_blank')}
-                            title="Click to view full size"
-                          />
-                        ) : (
-                          <span className="italic text-gray-400">No image</span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4">{formatDateTime(analysis.created_at)}</td>
-                      <td className="px-6 py-4">
-                        <span
-                          className={`inline-flex px-3 py-2 text-sm font-bold rounded-full transition-all duration-300 ${getStatusBadgeClass(analysis.status)}`}
-                          aria-label={`Status: ${analysis.status ?? 'PENDING'}`}
-                        >
-                          {analysis.status ?? 'PENDING'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex flex-col items-start gap-3">
-                          {userReviewMap[analysis.id] ? (
-                            <>
-                              <span className="bg-green-100 text-green-800 text-sm font-bold px-3 py-2 rounded dark:bg-green-900 dark:text-green-300">
-                                Reviewed
-                              </span>
-                              <button
-                                onClick={() => openReviewModal(analysis.id)}
-                                className="w-full px-4 py-2 text-base font-medium bg-accent-700 text-white rounded-lg hover:bg-accent-800 focus:outline-none focus:ring-2 focus:ring-accent-500 focus:ring-offset-2 transition-all duration-300 transform hover:scale-105"
-                              >
-                                Edit Review
-                              </button>
+            <>
+              <div className="overflow-x-auto">
+                <table
+                  className="w-full table-auto border border-accent-400 dark:border-accent-600 text-base"
+                  role="grid"
+                  aria-describedby="analysis-records-caption"
+                >
+                  <caption id="analysis-records-caption" className="sr-only">
+                    Soil analysis records for expert review
+                  </caption>
+                  <thead>
+                    <tr className="bg-accent-100 dark:bg-accent-900 sticky top-0 z-10">
+                      <th scope="col" className="px-6 py-4 text-left font-bold">Analysis ID</th>
+                      <th scope="col" className="px-6 py-4 text-left font-bold">Staff Name</th>
+                      <th scope="col" className="px-6 py-4 text-left font-bold">Location</th>
+                      <th scope="col" className="px-6 py-4 text-left font-bold">USCS Soil Type</th>
+                      <th scope="col" className="px-6 py-4 text-left font-bold">Captured</th>
+                      <th scope="col" className="px-6 py-4 text-left font-bold">Status</th>
+                      <th scope="col" className="px-6 py-4 text-left font-bold">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-accent-200 dark:divide-accent-800">
+                    {currentAnalyses.map((analysis) => (
+                      <tr key={analysis.id} className="odd:bg-accent-50 even:bg-white dark:odd:bg-gray-800 dark:even:bg-gray-900 hover:bg-accent-100 dark:hover:bg-accent-800 transition-colors duration-300">
+                        <td className="px-6 py-4 font-semibold">{analysis.id}</td>
+                        <td className="px-6 py-4">{engineerNameMap[analysis.engineer_id] || analysis.engineer_id || '—'}</td>
+                        <td className="px-6 py-4 font-semibold text-accent-900 dark:text-accent-200">{analysis.location ?? '—'}</td>
+                        <td className="px-6 py-4 font-bold">{analysis.soil_type ?? '—'}</td>
+                        <td className="px-6 py-4">{formatDateTime(analysis.created_at)}</td>
+                        <td className="px-6 py-4">
+                          <span
+                            className={`inline-flex px-3 py-2 text-sm font-bold rounded-full transition-all duration-300 ${getStatusBadgeClass(analysis.status)}`}
+                            aria-label={`Status: ${analysis.status ?? 'PENDING'}`}
+                          >
+                            {analysis.status ?? 'PENDING'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex flex-col items-start gap-2">
+                            <button
+                              onClick={() => openDetailsModal(analysis)}
+                              className="w-full px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-300 transform hover:scale-105 flex items-center justify-center gap-2"
+                              aria-label={`View and review analysis ${analysis.id}`}
+                            >
+                              <Eye className="w-4 h-4" /> 
+                              {userReviewMap[analysis.id] ? 'View & Edit Review' : 'View & Review'}
+                            </button>
+                            {userReviewMap[analysis.id] && (
                               <button
                                 onClick={() => openDeleteModal(analysis.id)}
-                                className="w-full px-4 py-2 text-base font-medium bg-red-600 text-white rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-all duration-300 transform hover:scale-105"
+                                className="w-full px-4 py-2 text-sm font-medium bg-red-600 text-white rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-all duration-300 transform hover:scale-105"
                               >
-                                Delete
+                                Delete Review
                               </button>
-                            </>
-                          ) : (
-                            <button
-                              onClick={() => openReviewModal(analysis.id)}
-                              className="w-full px-4 py-2 text-base font-medium bg-accent-700 text-white rounded-lg hover:bg-accent-800 focus:outline-none focus:ring-2 focus:ring-accent-500 focus:ring-offset-2 transition-all duration-300 transform hover:scale-105"
-                            >
-                              Add Review
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Pagination Controls */}
+              <div className="flex flex-col md:flex-row items-center justify-between mt-6 gap-4">
+                <div className="flex items-center gap-2">
+                  <label htmlFor="rows-per-page" className="text-sm text-gray-700 dark:text-gray-300">
+                    Rows per page:
+                  </label>
+                  <select
+                    id="rows-per-page"
+                    value={rowsPerPage}
+                    onChange={handleRowsPerPageChange}
+                    className="border border-accent-400 dark:border-accent-600 rounded-lg px-3 py-2 bg-accent-50 dark:bg-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-accent-500"
+                  >
+                    <option value={10}>10</option>
+                    <option value={15}>15</option>
+                    <option value={25}>25</option>
+                    <option value={50}>50</option>
+                  </select>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-700 dark:text-gray-300">
+                    Showing {startIndex + 1} to {Math.min(endIndex, filteredAnalyses.length)} of {filteredAnalyses.length} entries
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="p-2 rounded-lg bg-accent-100 dark:bg-accent-800 text-accent-900 dark:text-accent-100 hover:bg-accent-200 dark:hover:bg-accent-700 focus:outline-none focus:ring-2 focus:ring-accent-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"
+                    aria-label="Previous page"
+                  >
+                    <ChevronLeft className="w-5 h-5" />
+                  </button>
+
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                      if (
+                        page === 1 ||
+                        page === totalPages ||
+                        (page >= currentPage - 1 && page <= currentPage + 1)
+                      ) {
+                        return (
+                          <button
+                            key={page}
+                            onClick={() => handlePageChange(page)}
+                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
+                              currentPage === page
+                                ? 'bg-accent-700 text-white'
+                                : 'bg-accent-100 dark:bg-accent-800 text-accent-900 dark:text-accent-100 hover:bg-accent-200 dark:hover:bg-accent-700'
+                            } focus:outline-none focus:ring-2 focus:ring-accent-500`}
+                            aria-label={`Go to page ${page}`}
+                            aria-current={currentPage === page ? 'page' : undefined}
+                          >
+                            {page}
+                          </button>
+                        );
+                      } else if (page === currentPage - 2 || page === currentPage + 2) {
+                        return <span key={page} className="px-2 text-gray-500">...</span>;
+                      }
+                      return null;
+                    })}
+                  </div>
+
+                  <button
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className="p-2 rounded-lg bg-accent-100 dark:bg-accent-800 text-accent-900 dark:text-accent-100 hover:bg-accent-200 dark:hover:bg-accent-700 focus:outline-none focus:ring-2 focus:ring-accent-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"
+                    aria-label="Next page"
+                  >
+                    <ChevronRight className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+            </>
           )}
         </div>
       </main>
 
-      {/* Review Modal */}
-      {modalOpen && currentAnalysisData && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 transition-opacity duration-300" onClick={closeReviewModal}>
+      {/* Details Modal with Review Functionality */}
+      {detailsModalOpen && selectedAnalysisDetails && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 transition-opacity duration-300" onClick={closeDetailsModal}>
           <div
-            className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col transform transition-all duration-300 animate-in fade-in scale-95 hover:scale-100"
+            className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col transform transition-all duration-300 animate-in fade-in scale-95 hover:scale-100"
             onClick={e => e.stopPropagation()}
           >
             {/* Modal Header */}
             <div className="flex justify-between items-center px-8 py-6 border-b border-accent-200 dark:border-accent-700">
               <h3 className="text-2xl font-bold text-accent-900 dark:text-accent-200">
-                {userReviewMap[currentAnalysisId] ? 'Edit Review Comment' : 'Add Review Comment'}
+                {userReviewMap[selectedAnalysisDetails.id] ? 'Review Analysis Details' : 'View & Review Analysis'}
               </h3>
               <button
-                onClick={closeReviewModal}
+                onClick={closeDetailsModal}
                 className="p-2 rounded-full hover:bg-accent-100 dark:hover:bg-accent-900 focus:outline-none focus:ring-2 focus:ring-accent-500 transition-colors duration-300"
                 aria-label="Close modal"
               >
@@ -586,106 +739,180 @@ const ExpertDashboard = () => {
 
             {/* Modal Body */}
             <div className="flex-1 overflow-y-auto px-8 py-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                <div className="bg-accent-50 dark:bg-gray-700 p-4 rounded-lg">
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Analysis ID</p>
-                  <p className="text-lg font-bold text-accent-900 dark:text-accent-200">{currentAnalysisId}</p>
+              <div className="space-y-6">
+                {/* Basic Information */}
+                <div className="bg-accent-50 dark:bg-gray-700 p-6 rounded-lg">
+                  <h4 className="text-xl font-bold text-accent-900 dark:text-accent-200 mb-4">Basic Information</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Analysis ID</p>
+                      <p className="text-base font-semibold text-gray-900 dark:text-gray-100">{selectedAnalysisDetails.id}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Staff Name</p>
+                      <p className="text-base font-semibold text-gray-900 dark:text-gray-100">
+                        {engineerNameMap[selectedAnalysisDetails.engineer_id] || selectedAnalysisDetails.engineer_id || '—'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Location</p>
+                      <p className="text-base font-semibold text-gray-900 dark:text-gray-100">{selectedAnalysisDetails.location ?? 'Not provided'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Captured</p>
+                      <p className="text-base font-semibold text-gray-900 dark:text-gray-100">{formatDateTime(selectedAnalysisDetails.created_at)}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Current Status</p>
+                      <span className={`inline-block px-3 py-1 text-sm font-bold rounded-full ${getStatusBadgeClass(selectedAnalysisDetails.status)}`}>
+                        {selectedAnalysisDetails.status ?? 'PENDING'}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <div className="bg-accent-50 dark:bg-gray-700 p-4 rounded-lg">
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Staff Name</p>
-                  <p className="text-lg font-bold text-accent-900 dark:text-accent-200">
-                    {engineerNameMap[currentAnalysisData.engineer_id] || currentAnalysisData.engineer_id || '—'}
-                  </p>
-                </div>
-                <div className="bg-accent-50 dark:bg-gray-700 p-4 rounded-lg">
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Location</p>
-                  <p className="text-lg font-bold text-accent-900 dark:text-accent-200">{currentAnalysisData.location ?? 'Not provided'}</p>
-                </div>
-                <div className="bg-accent-50 dark:bg-gray-700 p-4 rounded-lg">
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">USCS Soil Type</p>
-                  <p className="text-lg font-bold text-accent-900 dark:text-accent-200">{currentAnalysisData.soil_type ?? '—'}</p>
-                </div>
-                <div className="bg-accent-50 dark:bg-gray-700 p-4 rounded-lg">
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Predicted Type</p>
-                  <p className="text-lg font-bold text-accent-900 dark:text-accent-200">{currentAnalysisData.predicted_soil_type ?? 'Not provided'}</p>
-                </div>
-                <div className="bg-accent-50 dark:bg-gray-700 p-4 rounded-lg">
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Total Weight</p>
-                  <p className="text-lg font-bold text-accent-900 dark:text-accent-200">{currentAnalysisData.total_weight ?? '—'} g</p>
-                </div>
-                <div className="bg-accent-50 dark:bg-gray-700 p-4 rounded-lg">
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Gravel %</p>
-                  <p className="text-lg font-bold text-accent-900 dark:text-accent-200">{currentAnalysisData.gravel_percent ? `${currentAnalysisData.gravel_percent}%` : '—'}</p>
-                </div>
-                <div className="bg-accent-50 dark:bg-gray-700 p-4 rounded-lg">
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Sand %</p>
-                  <p className="text-lg font-bold text-accent-900 dark:text-accent-200">{currentAnalysisData.sand_percent ? `${currentAnalysisData.sand_percent}%` : '—'}</p>
-                </div>
-                <div className="bg-accent-50 dark:bg-gray-700 p-4 rounded-lg">
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Fines %</p>
-                  <p className="text-lg font-bold text-accent-900 dark:text-accent-200">{currentAnalysisData.fines_percent ? `${currentAnalysisData.fines_percent}%` : '—'}</p>
-                </div>
-              </div>
 
-              <div className="bg-accent-50 dark:bg-gray-700 p-4 rounded-lg mb-6">
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Captured</p>
-                <p className="text-base font-semibold text-accent-900 dark:text-accent-200">{formatDateTime(currentAnalysisData.created_at)}</p>
-              </div>
+                {/* Weight Measurements */}
+                <div className="bg-accent-50 dark:bg-gray-700 p-6 rounded-lg">
+                  <h4 className="text-xl font-bold text-accent-900 dark:text-accent-200 mb-4">Weight Measurements</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Total Weight</p>
+                      <p className="text-base font-semibold text-gray-900 dark:text-gray-100">
+                        {selectedAnalysisDetails.total_weight ? `${selectedAnalysisDetails.total_weight.toFixed(2)} g` : '—'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Gravel Weight</p>
+                      <p className="text-base font-semibold text-gray-900 dark:text-gray-100">
+                        {selectedAnalysisDetails.gravel_weight ? `${selectedAnalysisDetails.gravel_weight.toFixed(2)} g` : '—'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Sand Weight</p>
+                      <p className="text-base font-semibold text-gray-900 dark:text-gray-100">
+                        {selectedAnalysisDetails.sand_weight ? `${selectedAnalysisDetails.sand_weight.toFixed(2)} g` : '—'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
 
-              <label htmlFor="review-comment" className="block text-base font-semibold text-accent-900 dark:text-accent-200 mb-3">
-                Review Comment
-              </label>
-              <textarea
-                id="review-comment"
-                rows={8}
-                className="w-full p-4 rounded-lg bg-accent-50 dark:bg-gray-700 border-2 border-accent-400 dark:border-accent-600 focus:outline-none focus:ring-2 focus:ring-accent-500 text-base transition-all duration-300"
-                value={reviewComments[currentAnalysisId] || ''}
-                onChange={(e) => handleReviewChange(e.target.value)}
-                placeholder="Enter your review comment..."
-                aria-label="Review comment input"
-              />
+                {/* Composition Percentages */}
+                <div className="bg-accent-50 dark:bg-gray-700 p-6 rounded-lg">
+                  <h4 className="text-xl font-bold text-accent-900 dark:text-accent-200 mb-4">Composition Percentages</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Gravel %</p>
+                      <p className="text-base font-semibold text-gray-900 dark:text-gray-100">
+                        {selectedAnalysisDetails.gravel_percent ? `${selectedAnalysisDetails.gravel_percent.toFixed(2)}%` : '—'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Sand %</p>
+                      <p className="text-base font-semibold text-gray-900 dark:text-gray-100">
+                        {selectedAnalysisDetails.sand_percent ? `${selectedAnalysisDetails.sand_percent.toFixed(2)}%` : '—'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Fines %</p>
+                      <p className="text-base font-semibold text-gray-900 dark:text-gray-100">
+                        {selectedAnalysisDetails.fines_percent ? `${selectedAnalysisDetails.fines_percent.toFixed(2)}%` : '—'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
 
-              <div className="mt-6">
-                <p className="text-base font-semibold text-accent-900 dark:text-accent-200 mb-3">
-                  Set Analysis Status
-                </p>
-                <div className="flex flex-col gap-4">
-                  <label className="flex items-center p-4 border-2 border-green-400 dark:border-green-600 rounded-lg cursor-pointer hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors duration-300">
-                    <input
-                      type="radio"
-                      name="status"
-                      value="APPROVED"
-                      checked={selectedStatus === 'APPROVED'}
-                      onChange={(e) => setSelectedStatus(e.target.value)}
-                      className="w-5 h-5 focus:ring-green-500"
-                      aria-label="Set status to APPROVED"
+                {/* Soil Classification */}
+                <div className="bg-accent-50 dark:bg-gray-700 p-6 rounded-lg">
+                  <h4 className="text-xl font-bold text-accent-900 dark:text-accent-200 mb-4">Soil Classification</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">USCS Soil Type</p>
+                      <p className="text-base font-semibold text-gray-900 dark:text-gray-100">{selectedAnalysisDetails.soil_type ?? '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Predicted Soil Type</p>
+                      <p className="text-base font-semibold text-gray-900 dark:text-gray-100">{selectedAnalysisDetails.predicted_soil_type ?? 'Not provided'}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Image */}
+                {selectedAnalysisDetails.image_soil_type && 
+                 (selectedAnalysisDetails.image_soil_type.startsWith('http') || selectedAnalysisDetails.image_soil_type.startsWith('https')) && (
+                  <div className="bg-accent-50 dark:bg-gray-700 p-6 rounded-lg">
+                    <h4 className="text-xl font-bold text-accent-900 dark:text-accent-200 mb-4">Soil Sample Image</h4>
+                    <img
+                      src={selectedAnalysisDetails.image_soil_type}
+                      alt={`Soil sample for ${selectedAnalysisDetails.soil_type}`}
+                      className="w-full max-w-md mx-auto rounded-lg border border-accent-400 cursor-pointer hover:scale-105 transition-transform duration-300"
+                      onClick={() => window.open(selectedAnalysisDetails.image_soil_type, '_blank')}
+                      title="Click to view full size"
                     />
-                    <span className="ml-3 text-lg font-semibold text-green-800 dark:text-green-300">APPROVED</span>
+                  </div>
+                )}
+
+                {/* Review Section */}
+                <div className="bg-gradient-to-r from-accent-50 to-blue-50 dark:from-gray-700 dark:to-gray-600 p-6 rounded-lg border-2 border-accent-300 dark:border-accent-600">
+                  <h4 className="text-xl font-bold text-accent-900 dark:text-accent-200 mb-4">
+                    {userReviewMap[selectedAnalysisDetails.id] ? 'Edit Your Review' : 'Add Your Review'}
+                  </h4>
+                  
+                  <label htmlFor="review-comment-details" className="block text-base font-semibold text-accent-900 dark:text-accent-200 mb-3">
+                    Review Comment
                   </label>
-                  <label className="flex items-center p-4 border-2 border-red-400 dark:border-red-600 rounded-lg cursor-pointer hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors duration-300">
-                    <input
-                      type="radio"
-                      name="status"
-                      value="DISAPPROVED"
-                      checked={selectedStatus === 'DISAPPROVED'}
-                      onChange={(e) => setSelectedStatus(e.target.value)}
-                      className="w-5 h-5 focus:ring-red-500"
-                      aria-label="Set status to DISAPPROVED"
-                    />
-                    <span className="ml-3 text-lg font-semibold text-red-800 dark:text-red-300">DISAPPROVED</span>
-                  </label>
-                  <label className="flex items-center p-4 border-2 border-accent-400 dark:border-accent-600 rounded-lg cursor-pointer hover:bg-accent-50 dark:hover:bg-accent-900/20 transition-colors duration-300">
-                    <input
-                      type="radio"
-                      name="status"
-                      value="PENDING"
-                      checked={selectedStatus === 'PENDING'}
-                      onChange={(e) => setSelectedStatus(e.target.value)}
-                      className="w-5 h-5 focus:ring-accent-500"
-                      aria-label="Set status to PENDING"
-                    />
-                    <span className="ml-3 text-lg font-semibold text-accent-900 dark:text-accent-200">PENDING</span>
-                  </label>
+                  <textarea
+                    id="review-comment-details"
+                    rows={6}
+                    className="w-full p-4 rounded-lg bg-white dark:bg-gray-800 border-2 border-accent-400 dark:border-accent-600 focus:outline-none focus:ring-2 focus:ring-accent-500 text-base transition-all duration-300"
+                    value={reviewInDetailsModal}
+                    onChange={(e) => setReviewInDetailsModal(e.target.value)}
+                    placeholder="Enter your review comment..."
+                    aria-label="Review comment input"
+                  />
+
+                  <div className="mt-6">
+                    <p className="text-base font-semibold text-accent-900 dark:text-accent-200 mb-3">
+                      Set Analysis Status
+                    </p>
+                    <div className="flex flex-col gap-3">
+                      <label className="flex items-center p-4 border-2 border-green-400 dark:border-green-600 rounded-lg cursor-pointer hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors duration-300">
+                        <input
+                          type="radio"
+                          name="status-details"
+                          value="APPROVED"
+                          checked={statusInDetailsModal === 'APPROVED'}
+                          onChange={(e) => setStatusInDetailsModal(e.target.value)}
+                          className="w-5 h-5 focus:ring-green-500"
+                          aria-label="Set status to APPROVED"
+                        />
+                        <span className="ml-3 text-lg font-semibold text-green-800 dark:text-green-300">APPROVED</span>
+                      </label>
+                      <label className="flex items-center p-4 border-2 border-red-400 dark:border-red-600 rounded-lg cursor-pointer hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors duration-300">
+                        <input
+                          type="radio"
+                          name="status-details"
+                          value="DISAPPROVED"
+                          checked={statusInDetailsModal === 'DISAPPROVED'}
+                          onChange={(e) => setStatusInDetailsModal(e.target.value)}
+                          className="w-5 h-5 focus:ring-red-500"
+                          aria-label="Set status to DISAPPROVED"
+                        />
+                        <span className="ml-3 text-lg font-semibold text-red-800 dark:text-red-300">DISAPPROVED</span>
+                      </label>
+                      <label className="flex items-center p-4 border-2 border-accent-400 dark:border-accent-600 rounded-lg cursor-pointer hover:bg-accent-50 dark:hover:bg-accent-900/20 transition-colors duration-300">
+                        <input
+                          type="radio"
+                          name="status-details"
+                          value="PENDING"
+                          checked={statusInDetailsModal === 'PENDING'}
+                          onChange={(e) => setStatusInDetailsModal(e.target.value)}
+                          className="w-5 h-5 focus:ring-accent-500"
+                          aria-label="Set status to PENDING"
+                        />
+                        <span className="ml-3 text-lg font-semibold text-accent-900 dark:text-accent-200">PENDING</span>
+                      </label>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -693,18 +920,18 @@ const ExpertDashboard = () => {
             {/* Modal Footer */}
             <div className="flex justify-end gap-3 px-8 py-6 border-t border-accent-200 dark:border-accent-700 bg-accent-50 dark:bg-gray-700">
               <button
-                onClick={closeReviewModal}
+                onClick={closeDetailsModal}
                 className="px-6 py-3 text-base font-medium bg-accent-300 dark:bg-accent-700 text-accent-900 dark:text-accent-100 rounded-lg hover:bg-accent-400 dark:hover:bg-accent-800 focus:outline-none focus:ring-2 focus:ring-accent-500 focus:ring-offset-2 transition-all duration-300"
-                aria-label="Cancel review"
+                aria-label="Close details modal"
               >
                 Cancel
               </button>
               <button
-                onClick={handleReviewSubmit}
-                className="px-6 py-3 text-base font-medium bg-accent-700 text-white rounded-lg hover:bg-accent-800 focus:outline-none focus:ring-2 focus:ring-accent-500 focus:ring-offset-2 transition-all duration-300 transform hover:scale-105"
+                onClick={handleReviewSubmitFromDetails}
+                className="px-6 py-3 text-base font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-300 transform hover:scale-105"
                 aria-label="Submit review"
               >
-                Submit Review
+                {userReviewMap[selectedAnalysisDetails.id] ? 'Update Review' : 'Submit Review'}
               </button>
             </div>
           </div>
