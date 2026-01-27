@@ -340,6 +340,52 @@ function SoilAnalysis() {
     },
   };
 
+  const handleImageFile = async (file) => {
+    try {
+      if (!file || !file.type.startsWith('image/')) {
+        throw new Error('Invalid file type. Please upload an image.');
+      }
+  
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const base64Image = reader.result;
+  
+        setCapturedImageData(base64Image);
+  
+        const response = await fetch(`${API_URL}/predict`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'ngrok-skip-browser-warning': 'true',
+          },
+          body: JSON.stringify({
+            image: base64Image.split(',')[1],
+          }),
+        });
+  
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.detail || 'Prediction failed');
+        }
+  
+        const data = await response.json();
+  
+        setImagePrediction(data.soil_type);
+        setPredictionConfidence(data.confidence);
+        setPredictionStatus(data.status);
+        setPredictionProbabilities(data.probabilities);
+  
+        setStep('Place unwashed soil sample, press 1...');
+        stopCamera();
+        setError('');
+      };
+  
+      reader.readAsDataURL(file);
+    } catch (err) {
+      setError(err.message);
+    }
+  };  
+
   return (
     <PageLayout currentPage="analysis">
       <div className="flex flex-col lg:flex-row gap-6 max-w-7xl mx-auto">
@@ -421,6 +467,7 @@ function SoilAnalysis() {
                 showStartButton={step.includes('Capture soil image')}
                 videoRef={videoRef}
                 canvasRef={canvasRef}
+                onUploadImage={handleImageFile}
               />
             )}
 

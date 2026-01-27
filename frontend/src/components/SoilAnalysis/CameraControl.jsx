@@ -10,7 +10,8 @@ function CameraControl({
   onCaptureImage,
   showStartButton,
   videoRef,
-  canvasRef
+  canvasRef,
+  onUploadImage
 }) {
 
   return (
@@ -45,6 +46,45 @@ function CameraControl({
           isCameraActive ? '' : 'hidden'
         }`}
       />
+      
+      {/* Upload / Drag & Drop */}
+      <div
+        className="mt-6 border-2 border-dashed border-accent-400 dark:border-accent-600 rounded-lg p-6 text-center cursor-pointer hover:bg-accent-100 dark:hover:bg-gray-800 transition"
+        onDragOver={(e) => e.preventDefault()}
+        onDrop={(e) => {
+          e.preventDefault();
+          if (e.dataTransfer.files.length > 0) {
+            onUploadImage(e.dataTransfer.files[0]);
+          }
+        }}
+      >
+        <p className="text-gray-700 dark:text-gray-300 mb-2 font-semibold">
+          Upload soil image
+        </p>
+
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+          Drag & drop image here or click to browse
+        </p>
+
+        <input
+          type="file"
+          accept="image/*"
+          className="hidden"
+          id="soilUpload"
+          onChange={(e) => {
+            if (e.target.files.length > 0) {
+              onUploadImage(e.target.files[0]);
+            }
+          }}
+        />
+
+        <label
+          htmlFor="soilUpload"
+          className="inline-block bg-accent-700 hover:bg-accent-800 text-white px-5 py-2 rounded-lg font-semibold cursor-pointer transition"
+        >
+          Choose Image
+        </label>
+      </div>
       
       {isCameraActive ? (
         <button
