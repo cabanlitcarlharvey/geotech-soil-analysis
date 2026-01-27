@@ -3,11 +3,6 @@ import { Sun, Moon, LogOut, Home, BarChart2 } from 'lucide-react';
 
 /**
  * Reusable Header Component for Expert Portal
- * @param {Object} props
- * @param {boolean} props.isDark - Dark mode state
- * @param {Function} props.toggleTheme - Function to toggle theme
- * @param {Function} props.onLogout - Function to handle logout
- * @param {string} props.currentPage - Current page identifier (optional)
  */
 function ExpertHeader({ isDark, toggleTheme, onLogout, currentPage = 'home' }) {
   const navigate = useNavigate();
@@ -16,34 +11,23 @@ function ExpertHeader({ isDark, toggleTheme, onLogout, currentPage = 'home' }) {
     {
       id: 'home',
       icon: Home,
-      label: 'Home',
       onClick: () => navigate('/expert-home'),
-      hoverColor: 'geotech',
-      title: 'Go to Home'
+      title: 'Go to Expert Home'
     },
     {
       id: 'dashboard',
       icon: BarChart2,
-      label: 'Dashboard',
       onClick: () => navigate('/expert-dashboard'),
-      hoverColor: 'geotech',
       title: 'Validation Dashboard'
     }
   ];
 
-  const getHoverClasses = (color) => {
-    const colorMap = {
-      amber: 'hover:bg-accent-200 dark:hover:bg-accent-800 focus:ring-accent-500',
-      green: 'hover:bg-green-200 dark:hover:bg-green-800 focus:ring-green-500',
-      red: 'hover:bg-red-100 dark:hover:bg-red-800 focus:ring-red-500'
-    };
-    return colorMap[color] || colorMap.amber;
-  };
-
   return (
-    <header 
-      className="bg-white/95 dark:bg-gray-800/95 shadow px-8 py-6 flex justify-between items-center border-b border-accent-700 transition-all duration-300" 
-      style={{ backdropFilter: 'blur(4px)' }}
+    <header
+      className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl shadow-sm 
+                 border-b border-slate-200/50 dark:border-slate-700/50 
+                 px-6 lg:px-8 py-4 flex justify-between items-center 
+                 sticky top-0 z-50 transition-all duration-300"
     >
       {/* Logo and Title */}
       <div
@@ -52,54 +36,69 @@ function ExpertHeader({ isDark, toggleTheme, onLogout, currentPage = 'home' }) {
         title="Go to Expert Home"
         tabIndex={0}
         role="button"
-        onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') navigate('/expert-home'); }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') navigate('/expert-home');
+        }}
         aria-label="Go to Expert Home"
       >
-        <svg width="44" height="44" fill="none" viewBox="0 0 48 48" aria-hidden="true">
-          <ellipse cx="24" cy="40" rx="18" ry="6" fill="#A0522D" />
-          <ellipse cx="24" cy="34" rx="14" ry="5" fill="#8B5E3C" />
-          <ellipse cx="24" cy="28" rx="10" ry="4" fill="#C2B280" />
-        </svg>
-        <h1 className="text-3xl font-bold text-accent-900 dark:text-accent-200 font-serif">
+        {/* Logo container – SAME as Header.jsx */}
+        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center shadow-lg">
+          <svg width="24" height="24" fill="none" viewBox="0 0 48 48" aria-hidden="true">
+            <ellipse cx="24" cy="40" rx="18" ry="6" fill="#ffffff" opacity="0.9" />
+            <ellipse cx="24" cy="34" rx="14" ry="5" fill="#ffffff" opacity="0.7" />
+            <ellipse cx="24" cy="28" rx="10" ry="4" fill="#ffffff" opacity="0.5" />
+          </svg>
+        </div>
+
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
           Geotech Expert Portal
         </h1>
       </div>
 
-      {/* Navigation Buttons */}
-      <div className="flex items-center gap-3">
+      {/* Right Controls */}
+      <div className="flex items-center gap-2">
         {/* Theme Toggle */}
         <button
           onClick={toggleTheme}
-          className={`p-3 rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors duration-300 ${getHoverClasses('amber')}`}
+          className="p-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 
+                     focus:ring-offset-2 transition-all duration-200 
+                     hover:bg-slate-100 dark:hover:bg-slate-800 
+                     text-slate-600 dark:text-slate-300"
           aria-label="Toggle theme"
-          title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
+          title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
         >
-          {isDark ? <Moon className="w-6 h-6" /> : <Sun className="w-6 h-6" />}
+          {isDark ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
         </button>
 
         {/* Navigation Buttons */}
-        {navigationButtons.map(({ id, icon: Icon, onClick, hoverColor, title }) => (
+        {navigationButtons.map(({ id, icon: Icon, onClick, title }) => (
           <button
             key={id}
             onClick={onClick}
-            className={`p-3 rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors duration-300 ${getHoverClasses(hoverColor)} ${
-              currentPage === id ? 'bg-accent-100 dark:bg-accent-900' : ''
+            className={`p-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 
+                        focus:ring-offset-2 transition-all duration-200 ${
+              currentPage === id
+                ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300'
+                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
             }`}
             aria-label={title}
             title={title}
           >
-            <Icon className="w-6 h-6" />
+            <Icon className="w-5 h-5" />
           </button>
         ))}
 
-        {/* Logout Button */}
+        {/* Logout */}
         <button
           onClick={onLogout}
-          className={`p-3 rounded-full text-red-600 dark:text-red-400 focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors duration-300 ${getHoverClasses('red')}`}
+          className="p-2.5 rounded-lg text-red-600 dark:text-red-400 
+                     focus:outline-none focus:ring-2 focus:ring-red-500 
+                     focus:ring-offset-2 transition-all duration-200 
+                     hover:bg-red-50 dark:hover:bg-red-900/20"
           aria-label="Log out"
           title="Logout"
         >
-          <LogOut className="w-6 h-6" />
+          <LogOut className="w-5 h-5" />
         </button>
       </div>
     </header>
