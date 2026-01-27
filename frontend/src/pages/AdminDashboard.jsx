@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../supabaseClient';
-import { LogOut, Edit2, Sun, Moon, CheckCircle, XCircle, AlertCircle, X, Users, UserCheck, UserX, Shield } from 'lucide-react';
+import { LogOut, Edit2, Sun, Moon, CheckCircle, XCircle, AlertCircle, X, Users, UserCheck, UserX, Shield, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { API_URL } from '../config';
 
@@ -14,6 +14,10 @@ const AdminDashboard = () => {
   const [deleteModal, setDeleteModal] = useState({ show: false, userId: null, userName: '', userRole: '' });
   const [activeTab, setActiveTab] = useState('all'); // all, pending, approved, declined, admins
   const navigate = useNavigate();
+
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   useEffect(() => {
     fetchAllUsers();
@@ -182,13 +186,9 @@ const AdminDashboard = () => {
     setEditStatus('');
   };
 
-  // Palitan ang handleLogout function (around line 185):
   const handleLogout = async () => {
     try {
-      // Add loading state to prevent double clicks
       setLoading(true);
-      
-      // Sign out from Supabase
       const { error } = await supabase.auth.signOut();
       
       if (error) {
@@ -198,14 +198,8 @@ const AdminDashboard = () => {
         return;
       }
       
-      // Clear any local state if needed
-      // Wait a bit to ensure session is cleared
       await new Promise(resolve => setTimeout(resolve, 100));
-      
-      // Navigate to login with replace to prevent back button issues
       navigate('/login', { replace: true });
-      
-      // Force reload to clear any cached state
       window.location.href = '/login';
     } catch (err) {
       console.error('Logout error:', err);
@@ -263,6 +257,28 @@ const AdminDashboard = () => {
 
   const filteredUsers = getFilteredUsers();
 
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredUsers.length / rowsPerPage);
+  const startIndex = (currentPage - 1) * rowsPerPage;
+  const endIndex = startIndex + rowsPerPage;
+  const currentUsers = filteredUsers.slice(startIndex, endIndex);
+
+  const handlePageChange = (newPage) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setCurrentPage(newPage);
+    }
+  };
+
+  const handleRowsPerPageChange = (e) => {
+    setRowsPerPage(Number(e.target.value));
+    setCurrentPage(1);
+  };
+
+  // Reset to page 1 when tab changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeTab]);
+
   // Count statistics
   const stats = {
     total: allUsers.length,
@@ -286,122 +302,201 @@ const AdminDashboard = () => {
     }
 
     return (
-      <div className="overflow-x-auto">
-        <table className="w-full table-auto border border-accent-400 dark:border-accent-600 rounded-xl shadow-lg">
-          <thead>
-            <tr className="bg-accent-100 dark:bg-accent-900/50">
-              <th className="px-5 py-4 border-b text-left font-semibold text-gray-700 dark:text-gray-200">Full Name</th>
-              <th className="px-5 py-4 border-b text-left font-semibold text-gray-700 dark:text-gray-200">Role</th>
-              <th className="px-5 py-4 border-b text-left font-semibold text-gray-700 dark:text-gray-200">Status</th>
-              <th className="px-5 py-4 border-b text-left font-semibold text-gray-700 dark:text-gray-200">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-accent-200 dark:divide-accent-800">
-            {users.map(user => (
-              <tr key={user.id} className="bg-white dark:bg-gray-800/50 hover:bg-accent-50 dark:hover:bg-accent-900/20 transition-colors">
-                <td className="px-5 py-4 text-gray-800 dark:text-gray-200">
-                  {user.full_name || <span className="italic text-gray-400">No name</span>}
-                </td>
-                <td className="px-5 py-4">
-                  <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold ${
-                    user.role === 'admin'
-                      ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300'
-                      : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
-                  }`}>
-                    {user.role === 'admin' && <Shield className="w-3 h-3" />}
-                    {user.role}
-                  </span>
-                </td>
-                <td className="px-5 py-4">
-                  {editId === user.id ? (
-                    <select
-                      value={editStatus}
-                      onChange={e => setEditStatus(e.target.value)}
-                      className="p-2 rounded-lg border border-accent-400 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-accent-500"
-                    >
-                      <option value="PENDING">PENDING</option>
-                      <option value="APPROVED">APPROVED</option>
-                      <option value="DECLINED">DECLINED</option>
-                    </select>
-                  ) : (
-                    <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold ${
-                      user.status === 'APPROVED'
-                        ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
-                        : user.status === 'DECLINED'
-                        ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
-                        : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300'
+      <>
+        <div className="overflow-x-auto">
+          <table className="w-full table-auto border border-accent-400 dark:border-accent-600 rounded-xl shadow-lg">
+            <thead>
+              <tr className="bg-accent-100 dark:bg-accent-900/50">
+                <th className="px-5 py-4 border-b text-left font-semibold text-gray-700 dark:text-gray-200">Full Name</th>
+                <th className="px-5 py-4 border-b text-left font-semibold text-gray-700 dark:text-gray-200">Role</th>
+                <th className="px-5 py-4 border-b text-left font-semibold text-gray-700 dark:text-gray-200">Status</th>
+                <th className="px-5 py-4 border-b text-left font-semibold text-gray-700 dark:text-gray-200">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-accent-200 dark:divide-accent-800">
+              {currentUsers.map(user => (
+                <tr key={user.id} className="bg-white dark:bg-gray-800/50 hover:bg-accent-50 dark:hover:bg-accent-900/20 transition-colors">
+                  <td className="px-5 py-4 text-gray-800 dark:text-gray-200">
+                    {user.full_name || <span className="italic text-gray-400">No name</span>}
+                  </td>
+                  <td className="px-5 py-4">
+                    <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold ${
+                      user.role === 'admin'
+                        ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300'
+                        : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
                     }`}>
-                      {user.status === 'APPROVED' && <CheckCircle className="w-3 h-3" />}
-                      {user.status === 'DECLINED' && <XCircle className="w-3 h-3" />}
-                      {user.status === 'PENDING' && <AlertCircle className="w-3 h-3" />}
-                      {user.status}
+                      {user.role === 'admin' && <Shield className="w-3 h-3" />}
+                      {user.role}
                     </span>
-                  )}
-                </td>
-                <td className="px-5 py-4">
-                  <div className="flex gap-2 flex-wrap">
+                  </td>
+                  <td className="px-5 py-4">
                     {editId === user.id ? (
-                      <>
-                        <button
-                          onClick={() => handleEditSave(user.id)}
-                          className="px-3 py-1.5 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors font-medium"
-                          disabled={loading}
-                        >
-                          Save
-                        </button>
-                        <button
-                          onClick={handleEditCancel}
-                          className="px-3 py-1.5 bg-gray-400 text-white text-sm rounded-lg hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-400 transition-colors font-medium"
-                          disabled={loading}
-                        >
-                          Cancel
-                        </button>
-                      </>
+                      <select
+                        value={editStatus}
+                        onChange={e => setEditStatus(e.target.value)}
+                        className="p-2 rounded-lg border border-accent-400 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-accent-500"
+                      >
+                        <option value="PENDING">PENDING</option>
+                        <option value="APPROVED">APPROVED</option>
+                        <option value="DECLINED">DECLINED</option>
+                      </select>
                     ) : (
-                      <>
-                        {user.status === 'PENDING' && (
-                          <>
-                            <button
-                              onClick={() => handleApprove(user.id)}
-                              className="px-3 py-1.5 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors font-medium"
-                              disabled={loading}
-                            >
-                              Approve
-                            </button>
-                            <button
-                              onClick={() => handleDecline(user.id)}
-                              className="px-3 py-1.5 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors font-medium"
-                              disabled={loading}
-                            >
-                              Decline
-                            </button>
-                          </>
-                        )}
-                        {user.status !== 'PENDING' && user.role !== 'admin' && !user.hasRecords && (
+                      <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold ${
+                        user.status === 'APPROVED'
+                          ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                          : user.status === 'DECLINED'
+                          ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
+                          : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300'
+                      }`}>
+                        {user.status === 'APPROVED' && <CheckCircle className="w-3 h-3" />}
+                        {user.status === 'DECLINED' && <XCircle className="w-3 h-3" />}
+                        {user.status === 'PENDING' && <AlertCircle className="w-3 h-3" />}
+                        {user.status}
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-5 py-4">
+                    <div className="flex gap-2 flex-wrap">
+                      {editId === user.id ? (
+                        <>
                           <button
-                            onClick={() => handleDeleteClick(user.id, user.role, user.full_name)}
-                            className="px-3 py-1.5 bg-gray-600 text-white text-sm rounded-lg hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors font-medium"
+                            onClick={() => handleEditSave(user.id)}
+                            className="px-3 py-1.5 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors font-medium"
                             disabled={loading}
                           >
-                            Delete
+                            Save
                           </button>
-                        )}
-                        <button
-                          onClick={() => handleEdit(user.id, user.status)}
-                          className="px-3 py-1.5 bg-accent-600 text-white text-sm rounded-lg hover:bg-accent-700 focus:outline-none focus:ring-2 focus:ring-accent-500 transition-colors font-medium flex items-center gap-1"
-                          disabled={loading}
-                        >
-                          <Edit2 className="w-3 h-3" /> Edit
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+                          <button
+                            onClick={handleEditCancel}
+                            className="px-3 py-1.5 bg-gray-400 text-white text-sm rounded-lg hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-400 transition-colors font-medium"
+                            disabled={loading}
+                          >
+                            Cancel
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          {user.status === 'PENDING' && (
+                            <>
+                              <button
+                                onClick={() => handleApprove(user.id)}
+                                className="px-3 py-1.5 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors font-medium"
+                                disabled={loading}
+                              >
+                                Approve
+                              </button>
+                              <button
+                                onClick={() => handleDecline(user.id)}
+                                className="px-3 py-1.5 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors font-medium"
+                                disabled={loading}
+                              >
+                                Decline
+                              </button>
+                            </>
+                          )}
+                          {user.status !== 'PENDING' && user.role !== 'admin' && !user.hasRecords && (
+                            <button
+                              onClick={() => handleDeleteClick(user.id, user.role, user.full_name)}
+                              className="px-3 py-1.5 bg-gray-600 text-white text-sm rounded-lg hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors font-medium"
+                              disabled={loading}
+                            >
+                              Delete
+                            </button>
+                          )}
+                          <button
+                            onClick={() => handleEdit(user.id, user.status)}
+                            className="px-3 py-1.5 bg-accent-600 text-white text-sm rounded-lg hover:bg-accent-700 focus:outline-none focus:ring-2 focus:ring-accent-500 transition-colors font-medium flex items-center gap-1"
+                            disabled={loading}
+                          >
+                            <Edit2 className="w-3 h-3" /> Edit
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Pagination Controls */}
+        {filteredUsers.length > 0 && (
+          <div className="flex flex-col md:flex-row items-center justify-between mt-6 gap-4">
+            <div className="flex items-center gap-2">
+              <label htmlFor="rows-per-page" className="text-sm text-gray-700 dark:text-gray-300">
+                Rows per page:
+              </label>
+              <select
+                id="rows-per-page"
+                value={rowsPerPage}
+                onChange={handleRowsPerPageChange}
+                className="border border-accent-400 dark:border-accent-600 rounded-lg px-3 py-2 bg-accent-50 dark:bg-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-accent-500"
+              >
+                <option value={10}>10</option>
+                <option value={15}>15</option>
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+              </select>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-700 dark:text-gray-300">
+                Showing {startIndex + 1} to {Math.min(endIndex, filteredUsers.length)} of {filteredUsers.length} entries
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="p-2 rounded-lg bg-accent-100 dark:bg-accent-800 text-accent-900 dark:text-accent-100 hover:bg-accent-200 dark:hover:bg-accent-700 focus:outline-none focus:ring-2 focus:ring-accent-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"
+                aria-label="Previous page"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+
+              <div className="flex items-center gap-1">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                  if (
+                    page === 1 ||
+                    page === totalPages ||
+                    (page >= currentPage - 1 && page <= currentPage + 1)
+                  ) {
+                    return (
+                      <button
+                        key={page}
+                        onClick={() => handlePageChange(page)}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
+                          currentPage === page
+                            ? 'bg-accent-700 text-white'
+                            : 'bg-accent-100 dark:bg-accent-800 text-accent-900 dark:text-accent-100 hover:bg-accent-200 dark:hover:bg-accent-700'
+                        } focus:outline-none focus:ring-2 focus:ring-accent-500`}
+                        aria-label={`Go to page ${page}`}
+                        aria-current={currentPage === page ? 'page' : undefined}
+                      >
+                        {page}
+                      </button>
+                    );
+                  } else if (page === currentPage - 2 || page === currentPage + 2) {
+                    return <span key={page} className="px-2 text-gray-500">...</span>;
+                  }
+                  return null;
+                })}
+              </div>
+
+              <button
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className="p-2 rounded-lg bg-accent-100 dark:bg-accent-800 text-accent-900 dark:text-accent-100 hover:bg-accent-200 dark:hover:bg-accent-700 focus:outline-none focus:ring-2 focus:ring-accent-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"
+                aria-label="Next page"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+        )}
+      </>
     );
   };
 
@@ -463,9 +558,10 @@ const AdminDashboard = () => {
         </div>
       )}
 
-      {/* Header */}
-      <header className="bg-white/95 dark:bg-gray-800/95 shadow px-8 py-6 flex justify-between items-center border-b border-accent-700 transition-all duration-300" style={{ backdropFilter: 'blur(4px)' }}>
-      <div
+      {/* Header - Updated to match GeoTech Portal style */}
+      <header className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl shadow-sm border-b border-slate-200/50 dark:border-slate-700/50 px-6 lg:px-8 py-4 flex justify-between items-center sticky top-0 z-50 transition-all duration-300">
+        {/* Logo and Title */}
+        <div
           className="flex items-center gap-3 cursor-pointer group transition-transform duration-300 hover:scale-105"
           onClick={() => window.location.reload()}
           title="Refresh Admin Dashboard"
@@ -474,28 +570,34 @@ const AdminDashboard = () => {
           onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') window.location.reload(); }}
           aria-label="Refresh Admin Dashboard"
         >
-          <svg width="44" height="44" fill="none" viewBox="0 0 48 48" aria-hidden>
-            <ellipse cx="24" cy="40" rx="18" ry="6" fill="#A0522D" />
-            <ellipse cx="24" cy="34" rx="14" ry="5" fill="#8B5E3C" />
-            <ellipse cx="24" cy="28" rx="10" ry="4" fill="#C2B280" />
-          </svg>
-          <h1 className="text-3xl font-bold text-accent-900 dark:text-accent-200 font-serif">
+          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center shadow-lg">
+            <Shield className="w-6 h-6 text-white" />
+          </div>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 font-sans">
             Admin Portal
           </h1>
         </div>
-        <div className="flex items-center gap-3">
+
+        {/* Action Buttons */}
+        <div className="flex items-center gap-2">
+          {/* Theme Toggle */}
           <button
             onClick={toggleTheme}
-            className="p-3 rounded-full hover:bg-accent-200 dark:hover:bg-accent-800 focus:outline-none focus:ring-2 focus:ring-accent-500 focus:ring-offset-2 transition-colors duration-300"
+            className="p-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-all duration-200 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300"
+            aria-label="Toggle theme"
             title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
           >
-            {isDark ? <Moon className="w-6 h-6" /> : <Sun className="w-6 h-6" />}
+            {isDark ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
           </button>
+
+          {/* Logout Button */}
           <button
             onClick={handleLogout}
-            className="p-3 rounded-full hover:bg-red-100 dark:hover:bg-red-800 text-red-600 dark:text-red-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-colors duration-300"
+            className="p-2.5 rounded-lg text-red-600 dark:text-red-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-all duration-200 hover:bg-red-50 dark:hover:bg-red-900/20"
+            aria-label="Log out"
+            title="Logout"
           >
-            <LogOut className="w-6 h-6" />
+            <LogOut className="w-5 h-5" />
           </button>
         </div>
       </header>
@@ -585,7 +687,7 @@ const AdminDashboard = () => {
               {activeTab === 'admins' && 'Administrator Accounts'}
             </h2>
             <span className="text-sm text-gray-600 dark:text-gray-400">
-              Showing {filteredUsers.length} {filteredUsers.length === 1 ? 'user' : 'users'}
+              {filteredUsers.length} {filteredUsers.length === 1 ? 'user' : 'users'}
             </span>
           </div>
 
