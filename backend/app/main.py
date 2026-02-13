@@ -51,58 +51,25 @@ def mobilenet_v2_preprocess(image):
     x = x - 1.0
     return x
 
+# ============================================
+# ✅ PRODUCTION CORS CONFIGURATION (RENDER + VERCEL)
+# ============================================
+
 app = FastAPI()
 
-# ============================================
-# ✅ FINAL CORS FIX - Super Permissive (for testing)
-# ============================================
+ALLOWED_ORIGINS = [
+    "https://geotech-soil-analysis-app.vercel.app",  # <-- Palitan kung iba domain mo
+    "http://localhost:5173",  # For local Vite dev
+    "http://localhost:3000",  # For local CRA dev
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow ALL origins
-    allow_credentials=False,  # Must be False when using "*"
-    allow_methods=["*"],  # Allow all HTTP methods
-    allow_headers=["*"],  # Allow all headers
-    expose_headers=["*"],
-    max_age=3600,
+    allow_origins=ALLOWED_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
-# ✅ ADD THIS: Middleware to add CORS headers to EVERY response
-@app.middleware("http")
-async def add_cors_headers(request: Request, call_next):
-    # Handle OPTIONS requests immediately
-    if request.method == "OPTIONS":
-        response = Response(
-            content="",
-            status_code=200,
-            headers={
-                "Access-Control-Allow-Origin": "*",
-                "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-                "Access-Control-Allow-Headers": "*",
-                "Access-Control-Max-Age": "3600",
-            }
-        )
-        return response
-    
-    # Process the request
-    response = await call_next(request)
-    
-    # Add CORS headers to response
-    response.headers["Access-Control-Allow-Origin"] = "*"
-    response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
-    response.headers["Access-Control-Allow-Headers"] = "*"
-    
-    return response
-
-# Log exceptions
-@app.middleware("http")
-async def log_exceptions(request: Request, call_next):
-    try:
-        response = await call_next(request)
-        return response
-    except Exception as e:
-        print(f"Unhandled error: {str(e)}")
-        import traceback
-        print(traceback.format_exc())
-        return JSONResponse(status_code=500, content={"detail": f"Server error: {str(e)}"})
 
 # Supabase configuration (service client)
 # ------------------------------------------------------------------
