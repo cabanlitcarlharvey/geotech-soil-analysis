@@ -39,7 +39,7 @@ cnn_status = "model_not_loaded"
 
 # --- CONFIGURATION (Kailangan mong i-update ito!) ---
 # PAKI-UPDATE ITO gamit ang Local IP Address ng iyong ESP32.
-ESP32_IP = "http://192.168.1.210" 
+ESP32_IP = "http://192.168.1.210/" 
 ESP32_COMMAND_URL = f"{ESP32_IP}/command"
 # ----------------------------------------------------
 
@@ -150,8 +150,7 @@ except Exception as e:
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 CNN_MODEL_PATH = os.path.join(CURRENT_DIR, "models", "cnn_soil_classifier.keras")
 IMG_SIZE = (224, 224)  # MobileNetV2 default input size
-CONFIDENCE_THRESHOLD = 0.8
-CLASSES = ["Clay Sand", "Silty Sand"]
+CLASSES = ["Clay Sand", "Silty Sand", "Unclassified"]  # ✅ Updated with Unclassified class
 
 # Load CNN model
 print("Loading CNN model...")
@@ -173,7 +172,6 @@ def load_model():
         print(f"  Model architecture: {cnn_model.name}")
         print(f"  Input shape: {cnn_model.input_shape}")
         print(f"  Output shape: {cnn_model.output_shape}")
-        print(f"  Confidence threshold: {CONFIDENCE_THRESHOLD}")
         print(f"  Classes: {CLASSES}")
     except FileNotFoundError:
         print(f"ERROR: CNN model not found at {CNN_MODEL_PATH}")
@@ -190,10 +188,14 @@ def load_model():
 load_model()
 
 # ========================================
-# CNN Prediction Function
+# CNN Prediction Function - SIMPLIFIED (No Threshold)
 # ========================================
-def predict_with_cnn(image, confidence_threshold=CONFIDENCE_THRESHOLD):
-    """Predict soil type using CNN with MobileNetV2"""
+def predict_with_cnn(image):
+    """
+    Predict soil type using CNN with MobileNetV2
+    Now uses 3 classes: Clay Sand, Silty Sand, Unclassified
+    No confidence threshold - model decides uncertainty via Unclassified class
+    """
     if cnn_model is None:
         raise ValueError("CNN model not loaded")
     
@@ -211,13 +213,8 @@ def predict_with_cnn(image, confidence_threshold=CONFIDENCE_THRESHOLD):
         predicted_class_idx = np.argmax(predictions)
         confidence = float(predictions[predicted_class_idx])
         
-        # Determine result based on confidence
-        if confidence >= confidence_threshold:
-            soil_type = CLASSES[predicted_class_idx]
-            status = "confident"
-        else:
-            soil_type = "Uncertain"
-            status = "uncertain"
+        # Get predicted soil type (model decides if Unclassified)
+        soil_type = CLASSES[predicted_class_idx]
         
         # Create probability dictionary
         prob_dict = {CLASSES[i]: float(predictions[i]) for i in range(len(CLASSES))}
@@ -225,12 +222,11 @@ def predict_with_cnn(image, confidence_threshold=CONFIDENCE_THRESHOLD):
         result = {
             "soil_type": soil_type,
             "confidence": confidence,
-            "status": status,
-            "probabilities": prob_dict,
-            "threshold": confidence_threshold
+            "probabilities": prob_dict
         }
         
         print(f"CNN Prediction: {soil_type} ({confidence:.2%} confidence)")
+        print(f"  Probabilities: {prob_dict}")
         return result
         
     except Exception as e:
@@ -346,8 +342,8 @@ def root():
     return {
         "message": "Geotech Soil Analysis Backend is running",
         "model": "CNN (Convolutional Neural Network)",
-        "status": cnn_status, # Gamitin ang cnn_status variable
-        "confidence_threshold": CONFIDENCE_THRESHOLD,
+        "status": cnn_status,
+        "classes": CLASSES,  # ✅ Show updated classes
         "device_comm_method": "Wi-Fi HTTP Relay"
     }
 
@@ -364,11 +360,12 @@ def model_info():
         "architecture": "Sequential with MobileNetV2 backbone",
         "input_shape": str(cnn_model.input_shape),
         "output_shape": str(cnn_model.output_shape),
-        "confidence_threshold": CONFIDENCE_THRESHOLD,
-        "classes": CLASSES,
+        "classes": CLASSES,  # ✅ Updated
+        "num_classes": len(CLASSES),  # ✅ Added
         "image_size": IMG_SIZE,
         "preprocessing": "MobileNetV2 preprocess_input (scale to [-1, 1])",
-        "model_file": CNN_MODEL_PATH
+        "model_file": CNN_MODEL_PATH,
+        "note": "Model includes Unclassified class - no manual threshold needed"  # ✅ Added
     }
 
 
@@ -386,7 +383,7 @@ async def predict_image(data: dict):
         if img is None:
             raise ValueError("Failed to decode image")
         
-        result = predict_with_cnn(img, confidence_threshold=CONFIDENCE_THRESHOLD)
+        result = predict_with_cnn(img)  # ✅ Simplified - no threshold parameter
         return result
         
     except Exception as e:
@@ -394,31 +391,8 @@ async def predict_image(data: dict):
         raise HTTPException(status_code=500, detail=f"Failed to process image: {str(e)}")
 
 
-@app.post("/predict-with-threshold")
-async def predict_with_custom_threshold(data: dict):
-    """Predict with custom confidence threshold"""
-    if cnn_model is None:
-        raise HTTPException(status_code=503, detail="CNN model not loaded")
-    
-    try:
-        image_data = base64.b64decode(data.get('image'))
-        nparr = np.frombuffer(image_data, np.uint8)
-        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-        
-        if img is None:
-            raise ValueError("Failed to decode image")
-        
-        custom_threshold = data.get('threshold', CONFIDENCE_THRESHOLD)
-        
-        if not 0.0 <= custom_threshold <= 1.0:
-            raise ValueError("Threshold must be between 0.0 and 1.0")
-        
-        result = predict_with_cnn(img, confidence_threshold=custom_threshold)
-        return result
-        
-    except Exception as e:
-        print(f"Error in /predict-with-threshold endpoint: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to process image: {str(e)}")
+# ✅ REMOVED: /predict-with-threshold endpoint (no longer needed)
+# The model now handles uncertainty through the Unclassified class
 
 
 # ============================================
@@ -658,7 +632,7 @@ async def test_prediction():
     test_img = np.ones((128, 128, 3), dtype=np.uint8) * [139, 69, 19]
     
     try:
-        result = predict_with_cnn(test_img, confidence_threshold=CONFIDENCE_THRESHOLD)
+        result = predict_with_cnn(test_img)  # ✅ Simplified
         return {
             "message": "Test prediction successful",
             "result": result
@@ -803,12 +777,11 @@ async def startup_event():
     print("=" * 60)
     print(f"Model: CNN (Convolutional Neural Network)")
     print(f"Framework: TensorFlow/Keras")
-    # Gamitin ang cnn_status variable
-    print(f"Status: {'✓ Loaded' if cnn_status == 'loaded' else f'✗ {cnn_status}'}") 
-    print(f"Confidence Threshold: {CONFIDENCE_THRESHOLD}")
-    print(f"Classes: {CLASSES}")
+    print(f"Status: {'✓ Loaded' if cnn_status == 'loaded' else f'✗ {cnn_status}'}")
+    print(f"Classes: {CLASSES}")  # ✅ Updated
     print(f"Device Comm: Wi-Fi HTTP Relay")
-    # ... (Iba pang print statements)
+    print("=" * 60)
+    print("✅ Threshold logic REMOVED - Model handles uncertainty")
     print("=" * 60)
     print("Backend ready to accept requests")
     print("=" * 60 + "\n")
