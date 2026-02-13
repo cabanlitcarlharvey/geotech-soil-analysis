@@ -44,6 +44,7 @@ function SoilAnalysis() {
   const [jwtToken, setJwtToken] = useState(null);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [capturedImageData, setCapturedImageData] = useState(null);
+  const hasCapturedImage = !!capturedImageData; // true kapag may na-capture o na-upload na image
 
   const steps = [
     { label: 'Location', status: 'Enter location for soil sample...' },
@@ -208,7 +209,16 @@ function SoilAnalysis() {
       setPredictionConfidence(data.confidence);
       setPredictionStatus(data.status);
       setPredictionProbabilities(data.probabilities);
-      
+
+      if (isUnclassifiedPrediction(data.soil_type)) {
+        // Stay in capture step; require retake
+        setStep('Capture soil image for prediction...');
+        //setError('Prediction not confident — retake required. Please capture a clearer soil image.');
+        stopCamera(); // optional: stop so user can restart cleanly
+        return;
+      }
+
+      // ✅ Allowed to proceed to weighing
       setStep('Place unwashed soil sample, press 1...');
       stopCamera();
       setError('');
@@ -217,10 +227,38 @@ function SoilAnalysis() {
     }
   };
 
+  const isUnclassifiedPrediction = (pred) =>
+    (pred ?? '').toString().trim().toLowerCase() === 'unclassified';
+  
+  const canProceedToWeighing = imagePrediction && !isUnclassifiedPrediction(imagePrediction);
+  
+  const retakePrediction = () => {
+    // Clear prediction + captured image, bring user back to capture step
+    setImagePrediction(null);
+    setPredictionConfidence(null);
+    setPredictionStatus(null);
+    setPredictionProbabilities(null);
+    setCapturedImageData(null);
+  
+    // Also clear any weight/results progress to avoid inconsistent flow
+    setWeight(null);
+    setTotalWeight(null);
+    setGravelWeight(null);
+    setResults(null);
+    setSaveStatus('');
+  
+    setError('');
+    setStep('Capture soil image for prediction...');
+  };  
+
   const sendCommand = async (cmd) => {
     try {
       if (!jwtToken && cmd === '3') {
         throw new Error('User not authenticated. Please log in.');
+      }
+      // Block weighing if prediction is Unclassified
+      if (['1', '2', '3'].includes(cmd) && !canProceedToWeighing) {
+        throw new Error('Cannot proceed: prediction is Unclassified. Please retake the image first.');
       }
 
       let response;
@@ -374,7 +412,14 @@ function SoilAnalysis() {
         setPredictionConfidence(data.confidence);
         setPredictionStatus(data.status);
         setPredictionProbabilities(data.probabilities);
-  
+
+        if (isUnclassifiedPrediction(data.soil_type)) {
+          setStep('Capture soil image for prediction...');
+          //setError('Prediction not confident — retake required. Please upload a clearer soil image.');
+          stopCamera();
+          return;
+        }
+
         setStep('Place unwashed soil sample, press 1...');
         stopCamera();
         setError('');
@@ -444,6 +489,65 @@ function SoilAnalysis() {
               predictionStatus={predictionStatus}
               predictionProbabilities={predictionProbabilities}
             />
+            {imagePrediction && isUnclassifiedPrediction(imagePrediction) && (
+              <div className="mb-6 p-4 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg border-l-4 border-yellow-600 dark:border-yellow-400 flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-lg font-semibold text-yellow-900 dark:text-yellow-200">
+                    Prediction result is Unclassified — please retake.
+                  </p>
+                  <p className="text-sm text-yellow-800 dark:text-yellow-300">
+                    Please capture a clearer soil image (better lighting, closer focus, avoid blur).
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={retakePrediction}
+                  className="px-4 py-2 rounded-lg bg-yellow-600 text-white font-semibold hover:bg-yellow-700 transition"
+                >
+                  Retake Image
+                </button>
+              </div>
+            )}
+
+            {/* Camera Control */}
+            {currentStepIndex >= 1 && currentStepIndex < 5 && (
+              <>
+                {/* BEFORE CAPTURE: show camera controls */}
+                {!hasCapturedImage ? (
+                  <CameraControl
+                    isCameraActive={isCameraActive}
+                    cameraDevices={cameraDevices}
+                    selectedCamera={selectedCamera}
+                    setSelectedCamera={setSelectedCamera}
+                    onStartCamera={startCamera}
+                    onCaptureImage={captureImage}
+                    showStartButton={step.includes('Capture soil image')}
+                    videoRef={videoRef}
+                    canvasRef={canvasRef}
+                    onUploadImage={handleImageFile}
+                  />
+                ) : (
+                  /* AFTER CAPTURE: show captured image preview only */
+                  <div className="mb-6 border-2 border-accent-400 dark:border-accent-700 bg-accent-50/80 dark:bg-gray-900/50 p-6 rounded-2xl shadow-lg">
+                    <h3 className="text-xl font-bold mb-4 text-accent-900 dark:text-accent-200">
+                      Captured Soil Image
+                    </h3>
+
+                    <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-accent-300 dark:border-accent-700">
+                      <img
+                        src={capturedImageData}
+                        alt="Captured soil sample"
+                        className="w-full max-w-2xl mx-auto rounded-lg border border-accent-300 dark:border-accent-700"
+                      />
+                    </div>
+
+                    <p className="mt-3 text-sm text-gray-600 dark:text-gray-400 text-center">
+                      If the image is blurry or unclear, tap <span className="font-semibold">Retake Image</span>.
+                    </p>
+                  </div>
+                )}
+              </>
+            )}
 
             {/* Current Weight Display */}
             {weight !== null && (
@@ -455,40 +559,12 @@ function SoilAnalysis() {
               </div>
             )}
 
-            {/* Camera Control */}
-            {currentStepIndex >= 1 && currentStepIndex < 5 && (
-              <CameraControl
-                isCameraActive={isCameraActive}
-                cameraDevices={cameraDevices}
-                selectedCamera={selectedCamera}
-                setSelectedCamera={setSelectedCamera}
-                onStartCamera={startCamera}
-                onCaptureImage={captureImage}
-                showStartButton={step.includes('Capture soil image')}
-                videoRef={videoRef}
-                canvasRef={canvasRef}
-                onUploadImage={handleImageFile}
-              />
-            )}
-
             {/* Analysis Controls */}
-            {imagePrediction && (
+            {canProceedToWeighing && (
               <AnalysisControls
                 buttonStates={getButtonStates()}
                 onSendCommand={sendCommand}
               />
-            )}
-
-            {/* Pie Chart */}
-            {totalWeight && currentStepIndex >= 2 && (
-              <div className="mb-6 border-2 border-accent-400 dark:border-accent-700 bg-accent-50/80 dark:bg-gray-900/50 p-6 rounded-2xl shadow-lg">
-                <h3 className="text-xl font-bold mb-4 text-accent-900 dark:text-accent-200">Composition Breakdown</h3>
-                <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-accent-300 dark:border-accent-700">
-                  <div className="max-w-sm mx-auto">
-                    <Pie data={pieChartData} options={pieChartOptions} />
-                  </div>
-                </div>
-              </div>
             )}
 
             {/* Results Card */}
@@ -545,6 +621,18 @@ function SoilAnalysis() {
                     </div>
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* Pie Chart */}
+            {totalWeight && currentStepIndex >= 2 && (
+              <div className="mb-6 border-2 border-accent-400 dark:border-accent-700 bg-accent-50/80 dark:bg-gray-900/50 p-6 rounded-2xl shadow-lg">
+                <h3 className="text-xl font-bold mb-4 text-accent-900 dark:text-accent-200">Composition Breakdown</h3>
+                <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-accent-300 dark:border-accent-700">
+                  <div className="max-w-sm mx-auto">
+                    <Pie data={pieChartData} options={pieChartOptions} />
+                  </div>
+                </div>
               </div>
             )}
 
