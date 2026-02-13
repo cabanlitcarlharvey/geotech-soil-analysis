@@ -1,36 +1,32 @@
-version: '3.8'
-
 services:
   # ========================================
   # BACKEND SERVICE (FastAPI/TensorFlow)
   # ========================================
   geotech-server:
-    # Tumutukoy sa Dockerfile sa backend folder
     build:
       context: ./backend 
       dockerfile: Dockerfile
     container_name: geotech-server
-    # Hindi na kailangan i-expose ang port dito dahil ang frontend/nginx ang tatawag
-    # Pero puwede pa rin para sa direct testing (opsyonal)
-    expose:
-      - "8000"
     ports:
       - "8000:8000"
+    environment:
+      - CUDA_VISIBLE_DEVICES=-1
+      - TF_CPP_MIN_LOG_LEVEL=2
+    # ✅ WALA nang volumes - kasama na sa COPY sa Dockerfile
     env_file:
-      - ./backend/.env # Idagdag ang linya na ito
+      - ./backend/.env
     restart: always
 
   # ========================================
   # FRONTEND SERVICE (React/Vite + Nginx)
   # ========================================
   geotech-frontend:
-    # Tumutukoy sa Dockerfile sa frontend folder
     build:
       context: ./frontend
-      dockerfile: Dockerfile # Tiyakin na ito ang pangalan
+      dockerfile: Dockerfile
     container_name: geotech-frontend
     ports:
-      - "3000:80" # I-map ang container port 80 sa host port 3000
+      - "3000:80"
     depends_on:
-      - geotech-server # Siguraduhin na mauuna ang backend
+      - geotech-server
     restart: always
