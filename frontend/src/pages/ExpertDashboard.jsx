@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../supabaseClient';
-import { Sun, Moon, LogOut, Home, X, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { X, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
 import { DateTime } from 'luxon';
 import PageLayout from '../components/shared/PageLayout';
+import { getUscsMapping } from '../utils/uscsMapping';
 
 const ExpertDashboard = () => {
   const [analyses, setAnalyses] = useState([]);
@@ -12,13 +12,8 @@ const ExpertDashboard = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [isDark, setIsDark] = useState(localStorage.getItem('theme') === 'dark');
-  const [reviewComments, setReviewComments] = useState({});
-  const [modalOpen, setModalOpen] = useState(false);
-  const [currentAnalysisId, setCurrentAnalysisId] = useState(null);
-  const [currentAnalysisData, setCurrentAnalysisData] = useState(null);
-  const [selectedStatus, setSelectedStatus] = useState('');
-  const navigate = useNavigate();
+  const [isDark] = useState(localStorage.getItem('theme') === 'dark');
+  const [setReviewComments] = useState({});
   const [userId, setUserId] = useState(null);
   const [userReviewMap, setUserReviewMap] = useState({});
   const [notification, setNotification] = useState({ show: false, type: '', message: '' });
@@ -42,11 +37,31 @@ const ExpertDashboard = () => {
     };
     getUserAndReviews();
     document.documentElement.classList.toggle('dark', isDark);
-  }, []);
+  }, [isDark]);
 
   useEffect(() => {
-    applyFilter();
-  }, [soilTypeFilter, searchQuery, analyses]);
+    let filtered = analyses;
+  
+    if (soilTypeFilter !== 'ALL') {
+      const f = soilTypeFilter.toLowerCase();
+      filtered = filtered.filter((a) => a.soil_type?.toLowerCase().includes(f));
+    }
+  
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        (a) =>
+          a.soil_type?.toLowerCase().includes(q) ||
+          a.predicted_soil_type?.toLowerCase().includes(q) ||
+          a.status?.toLowerCase().includes(q) ||
+          a.location?.toLowerCase().includes(q) ||
+          formatDateTime(a.created_at).toLowerCase().includes(q)
+      );
+    }
+  
+    setFilteredAnalyses(filtered);
+    setCurrentPage(1);
+  }, [soilTypeFilter, searchQuery, analyses]);  
 
   useEffect(() => {
     if (notification.show) {
@@ -135,69 +150,6 @@ const ExpertDashboard = () => {
     }
   };
 
-  const applyFilter = () => {
-    let filtered = analyses;
-    if (soilTypeFilter !== 'ALL') {
-      filtered = filtered.filter((a) =>
-        a.soil_type?.toLowerCase().includes(soilTypeFilter.toLowerCase())
-      );
-    }
-    if (searchQuery) {
-      filtered = filtered.filter(
-        (a) =>
-          a.soil_type?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          a.predicted_soil_type?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          a.status?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          a.location?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          formatDateTime(a.created_at).toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
-    setFilteredAnalyses(filtered);
-    setCurrentPage(1); // Reset to first page when filters change
-  };
-
-  const toggleTheme = () => {
-    const newTheme = isDark ? 'light' : 'dark';
-    localStorage.setItem('theme', newTheme);
-    document.documentElement.classList.toggle('dark', newTheme === 'dark');
-    setIsDark(!isDark);
-  };
-
-  const handleLogout = async () => {
-    try {
-      await supabase.auth.signOut();
-      navigate('/login');
-    } catch (err) {
-      console.error('Logout error:', err);
-      showNotification('error', 'Failed to log out. Please try again.');
-    }
-  };
-
-  const openReviewModal = (analysisId) => {
-    const analysis = analyses.find((a) => a.id === analysisId);
-    setCurrentAnalysisId(analysisId);
-    setCurrentAnalysisData(analysis);
-    setSelectedStatus(analysis?.status || 'PENDING');
-
-    setReviewComments((prev) => ({
-      ...prev,
-      [analysisId]: userReviewMap[analysisId]?.comments || ''
-    }));
-
-    setModalOpen(true);
-  };
-
-  const closeReviewModal = () => {
-    const idToClear = currentAnalysisId;
-    setModalOpen(false);
-    setCurrentAnalysisId(null);
-    setCurrentAnalysisData(null);
-    if (idToClear) {
-      setReviewComments((prev) => ({ ...prev, [idToClear]: '' }));
-    }
-    setSelectedStatus('');
-  };
-
   const openDetailsModal = (analysis) => {
     setSelectedAnalysisDetails(analysis);
     setStatusInDetailsModal(analysis?.status || 'PENDING');
@@ -210,89 +162,6 @@ const ExpertDashboard = () => {
     setSelectedAnalysisDetails(null);
     setReviewInDetailsModal('');
     setStatusInDetailsModal('');
-  };
-
-  const handleReviewChange = (comment) => {
-    setReviewComments((prev) => ({ ...prev, [currentAnalysisId]: comment }));
-  };
-
-  const handleReviewSubmit = async () => {
-    const comment = reviewComments[currentAnalysisId]?.trim();
-    if (!comment) {
-      showNotification('warning', 'Please enter a review comment.');
-      return;
-    }
-    if (!selectedStatus) {
-      showNotification('warning', 'Please select a status.');
-      return;
-    }
-
-    try {
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-      if (authError || !user) {
-        console.error('Authentication error:', authError);
-        showNotification('error', 'You must be logged in to submit a review.');
-        return;
-      }
-
-      const { error: upsertError } = await supabase
-        .from('analysis_reviews')
-        .upsert(
-          [
-            {
-              analysis_id: currentAnalysisId,
-              reviewer_id: user.id,
-              comments: comment,
-              reviewed_at: new Date().toISOString(),
-            },
-          ],
-          {
-            onConflict: ['analysis_id', 'reviewer_id'],
-          }
-        );
-
-      if (upsertError) {
-        console.error('Review upsert error:', upsertError);
-        showNotification('error', 'Error submitting review.');
-      } else {
-        const statusToSave = selectedStatus || 'PENDING';
-        const { error: statusError } = await supabase
-          .from('soil_analysis_results')
-          .update({ status: statusToSave })
-          .eq('id', currentAnalysisId);
-
-        if (statusError) {
-          console.error('Status update error:', statusError);
-          showNotification('error', 'Review saved but updating status failed.');
-          return;
-        }
-
-        setAnalyses((prev) =>
-          prev.map((analysis) =>
-            analysis.id === currentAnalysisId ? { ...analysis, status: statusToSave } : analysis
-          )
-        );
-        setFilteredAnalyses((prev) =>
-          prev.map((analysis) =>
-            analysis.id === currentAnalysisId ? { ...analysis, status: statusToSave } : analysis
-          )
-        );
-        showNotification('success', 'Review and status updated successfully.');
-        setUserReviewMap((prev) => ({
-          ...prev,
-          [currentAnalysisId]: { analysis_id: currentAnalysisId, comments: comment }
-        }));
-        setReviewComments((prev) => ({
-          ...prev,
-          [currentAnalysisId]: comment
-        }));
-        closeReviewModal();
-      }
-    } catch (err) {
-      console.error('Unexpected error:', err);
-      showNotification('error', 'An unexpected error occurred.');
-    }
   };
 
   const handleReviewSubmitFromDetails = async () => {
@@ -821,19 +690,102 @@ const ExpertDashboard = () => {
                   </div>
                 </div>
 
-                {/* Soil Classification */}
+                {/* ML Prediction Result (replaces Soil Classification) */}
                 <div className="bg-accent-50 dark:bg-gray-700 p-6 rounded-lg">
-                  <h4 className="text-xl font-bold text-accent-900 dark:text-accent-200 mb-4">Soil Classification</h4>
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="text-xl">🧠</div>
+                    <h4 className="text-xl font-bold text-accent-900 dark:text-accent-200">
+                      ML Prediction Result
+                    </h4>
+                  </div>
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">USCS Soil Type</p>
-                      <p className="text-base font-semibold text-gray-900 dark:text-gray-100">{selectedAnalysisDetails.soil_type ?? '—'}</p>
+                    <div className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-accent-300 dark:border-accent-700">
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">USCS Soil Type</p>
+                      <p className="text-lg font-bold text-accent-900 dark:text-accent-200">
+                        {selectedAnalysisDetails?.soil_type ?? '—'}
+                      </p>
                     </div>
-                    <div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Predicted Soil Type</p>
-                      <p className="text-base font-semibold text-gray-900 dark:text-gray-100">{selectedAnalysisDetails.predicted_soil_type ?? 'Not provided'}</p>
+
+                    <div className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-accent-300 dark:border-accent-700">
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Predicted Soil Type</p>
+                      <p className="text-lg font-bold text-yellow-700 dark:text-yellow-300">
+                        {selectedAnalysisDetails?.predicted_soil_type ?? 'Not provided'}
+                      </p>
                     </div>
                   </div>
+                </div>
+
+                {/* USCS Reference Mapping (Flowchart-based) */}
+                <div className="bg-accent-50 dark:bg-gray-700 p-6 rounded-lg">
+                  {(() => {
+                    const map = getUscsMapping({
+                      gravel_percent: selectedAnalysisDetails.gravel_percent,
+                      sand_percent: selectedAnalysisDetails.sand_percent,
+                      fines_percent: selectedAnalysisDetails.fines_percent,
+                    });
+
+                    return (
+                      <>
+                        <div className="flex items-center gap-3 mb-4">
+                          <div className="text-xl">📊</div>
+                          <h4 className="text-xl font-bold text-accent-900 dark:text-accent-200">
+                            USCS Reference Mapping
+                          </h4>
+                        </div>
+                        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
+                          <p className="text-base font-semibold text-gray-900 dark:text-gray-100">
+                            {map.headline}
+                          </p>
+                          <span className="inline-flex items-center px-3 py-2 rounded-lg text-sm font-bold bg-accent-100 dark:bg-accent-900 text-accent-800 dark:text-accent-200">
+                            {map.symbol}
+                          </span>
+                        </div>
+
+                        {/* Quick % summary */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+                          <div className="rounded-lg p-4 bg-white/70 dark:bg-gray-800/40 border border-accent-200 dark:border-accent-700">
+                            <p className="text-xs text-gray-600 dark:text-gray-400">Gravel</p>
+                            <p className="text-sm font-bold text-gray-900 dark:text-gray-100">
+                              {Number(selectedAnalysisDetails.gravel_percent ?? 0).toFixed(2)}%
+                            </p>
+                          </div>
+                          <div className="rounded-lg p-4 bg-white/70 dark:bg-gray-800/40 border border-accent-200 dark:border-accent-700">
+                            <p className="text-xs text-gray-600 dark:text-gray-400">Sand</p>
+                            <p className="text-sm font-bold text-gray-900 dark:text-gray-100">
+                              {Number(selectedAnalysisDetails.sand_percent ?? 0).toFixed(2)}%
+                            </p>
+                          </div>
+                          <div className="rounded-lg p-4 bg-white/70 dark:bg-gray-800/40 border border-accent-200 dark:border-accent-700">
+                            <p className="text-xs text-gray-600 dark:text-gray-400">Fines</p>
+                            <p className="text-sm font-bold text-gray-900 dark:text-gray-100">
+                              {Number(selectedAnalysisDetails.fines_percent ?? 0).toFixed(2)}%
+                            </p>
+                          </div>
+                        </div>
+                        <p className="text-sm font-bold text-gray-700 dark:text-gray-200 mb-2">
+                          Decision path (USCS flow):
+                        </p>
+                        <ul className="list-disc pl-5 text-sm text-gray-700 dark:text-gray-300 space-y-1">
+                          {map.path.map((step, idx) => (
+                            <li key={idx}>{step}</li>
+                          ))}
+                        </ul>
+                        {map.notes?.length > 0 && (
+                          <div className="mt-4 border border-accent-200 dark:border-accent-700 rounded-lg p-4 bg-white/70 dark:bg-gray-800/40">
+                            <p className="text-sm font-bold text-gray-700 dark:text-gray-200 mb-2">
+                              Notes / What you need to finalize:
+                            </p>
+                            <ul className="list-disc pl-5 text-sm text-gray-700 dark:text-gray-300 space-y-1">
+                              {map.notes.map((n, idx) => (
+                                <li key={idx}>{n}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
 
                 {/* Image */}

@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { Download, Trash2, X, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
 import Papa from 'papaparse';
 import { DateTime } from 'luxon';
 import PageLayout from '../components/shared/PageLayout';
+import { getUscsMapping } from '../utils/uscsMapping';
 
 const EngineerAnalysisHistory = () => {
   const navigate = useNavigate();
@@ -27,7 +28,7 @@ const EngineerAnalysisHistory = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
-  const fetchHistory = async () => {
+  const fetchHistory = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -36,31 +37,32 @@ const EngineerAnalysisHistory = () => {
         navigate('/login');
         return;
       }
-
+  
       const { data, error } = await supabase
         .from('soil_analysis_results')
         .select('id, total_weight, gravel_weight, sand_weight, gravel_percent, sand_percent, fines_percent, soil_type, predicted_soil_type, image_soil_type, created_at, engineer_id, status, location')
         .eq('engineer_id', user.id)
         .order('created_at', { ascending: false });
-
+  
       if (error) throw new Error('Failed to load analysis history.');
-
+  
       const analysisIds = data.map((item) => item.id);
+  
       const { data: reviewsData } = await supabase
         .from('analysis_reviews')
         .select('analysis_id')
         .in('analysis_id', analysisIds);
-
+  
       const reviewCounts = reviewsData?.reduce((acc, review) => {
         acc[review.analysis_id] = (acc[review.analysis_id] || 0) + 1;
         return acc;
       }, {}) || {};
-
+  
       const enrichedData = data.map((item) => ({
         ...item,
         review_count: reviewCounts[item.id] || 0,
       }));
-
+  
       setAnalyses(enrichedData);
       setFilteredAnalyses(enrichedData);
     } catch (err) {
@@ -68,11 +70,11 @@ const EngineerAnalysisHistory = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [navigate]);  
 
   useEffect(() => {
     fetchHistory();
-  }, [navigate]);
+  }, [fetchHistory]);
 
   useEffect(() => {
     if (filter === 'All' && !searchQuery) {
@@ -629,20 +631,147 @@ const EngineerAnalysisHistory = () => {
                     </div>
                   </div>
 
-                  {/* Soil Classification */}
-                  <div className="bg-accent-50 dark:bg-gray-700 p-6 rounded-lg">
-                    <h4 className="text-xl font-bold text-accent-900 dark:text-accent-200 mb-4">Soil Classification</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">USCS Soil Type</p>
-                        <p className="text-base font-semibold text-gray-900 dark:text-gray-100">{selectedAnalysis.soil_type ?? '—'}</p>
+                  {/* Soil Classification (ML + USCS Mapping style) */}
+                  {(() => {
+                    const g = selectedAnalysis?.gravel_percent ?? null;
+                    const s = selectedAnalysis?.sand_percent ?? null;
+                    const f = selectedAnalysis?.fines_percent ?? null;
+
+                    // IMPORTANT: use the shape your util expects.
+                    // In your current code, you pass gravel_percent/sand_percent/fines_percent,
+                    // so keep that to avoid breaking.
+                    const map =
+                      g != null && s != null && f != null
+                        ? getUscsMapping({
+                            gravel_percent: g,
+                            sand_percent: s,
+                            fines_percent: f,
+                          })
+                        : null;
+
+                    // Allow both util output styles:
+                    // - your current util: { title, headline, symbol, path, notes }
+                    // - the newer style: { summaryLine, badgeTitle, badgeSubtitle, decisionPath, notes }
+                    const summaryLine = map?.summaryLine ?? map?.headline ?? 'USCS mapping not available';
+                    const badgeTitle = map?.badgeTitle ?? map?.symbol ?? '—';
+                    const badgeSubtitle = map?.badgeSubtitle ?? '';
+                    const decisionPath = map?.decisionPath ?? map?.path ?? [];
+                    const notes = map?.notes ?? [];
+
+                    return (
+                      <div className="space-y-5">
+                        {/* ===== Soil Classification + USCS Mapping (ExpertDashboard-style) ===== */}
+                        <div className="space-y-6">
+                          {/* Card 1: Soil Classification (ML Prediction Result) */}
+                          <div className="bg-accent-50 dark:bg-gray-700 p-6 rounded-lg">
+                            <div className="flex items-center gap-3 mb-4">
+                              <div className="text-xl">🧠</div>
+                              <h4 className="text-xl font-bold text-accent-900 dark:text-accent-200">
+                                ML Prediction Result
+                              </h4>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-accent-300 dark:border-accent-700">
+                                <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">USCS Soil Type</p>
+                                <p className="text-lg font-bold text-accent-900 dark:text-accent-200">
+                                  {selectedAnalysis?.soil_type ?? '—'}
+                                </p>
+                              </div>
+
+                              <div className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-accent-300 dark:border-accent-700">
+                                <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Predicted Soil Type</p>
+                                <p className="text-lg font-bold text-yellow-700 dark:text-yellow-300">
+                                  {selectedAnalysis?.predicted_soil_type ?? 'Not provided'}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Card 2: USCS Mapping (USCS Reference Mapping) */}
+                          <div className="bg-accent-50 dark:bg-gray-700 p-6 rounded-lg">
+                          <div className="flex items-center gap-3 mb-4">
+                              <div className="text-xl">📊</div>
+                              <h4 className="text-xl font-bold text-accent-900 dark:text-accent-200">
+                                USCS Reference Mapping
+                              </h4>
+                            </div>
+
+                            {!map ? (
+                              <p className="text-sm text-gray-700 dark:text-gray-300">
+                                Mapping not available (missing gravel/sand/fines %).
+                              </p>
+                            ) : (
+                              <>
+                                {/* headline + badge (same as ExpertDashboard style) */}
+                                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
+                                  <p className="text-base font-semibold text-gray-900 dark:text-gray-100">
+                                    {summaryLine}
+                                  </p>
+
+                                  <span className="inline-flex items-center px-4 py-2 rounded-lg text-sm font-bold bg-gray-900 text-white dark:bg-black/60 border border-gray-700">
+                                    <span className="mr-2">{badgeTitle}</span>
+                                    {!!badgeSubtitle && (
+                                      <span className="text-xs text-gray-200 font-medium">
+                                        {badgeSubtitle}
+                                      </span>
+                                    )}
+                                  </span>
+                                </div>
+
+                                {/* Smaller Gravel/Sand/Fines boxes (pinaliit height/width feel) */}
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+                                  <div className="rounded-lg px-4 py-3 bg-white/70 dark:bg-gray-800/40 border border-accent-200 dark:border-accent-700">
+                                    <p className="text-xs text-gray-600 dark:text-gray-400">Gravel</p>
+                                    <p className="text-sm font-bold text-gray-900 dark:text-gray-100">
+                                      {Number(g ?? 0).toFixed(2)}%
+                                    </p>
+                                  </div>
+                                  <div className="rounded-lg px-4 py-3 bg-white/70 dark:bg-gray-800/40 border border-accent-200 dark:border-accent-700">
+                                    <p className="text-xs text-gray-600 dark:text-gray-400">Sand</p>
+                                    <p className="text-sm font-bold text-gray-900 dark:text-gray-100">
+                                      {Number(s ?? 0).toFixed(2)}%
+                                    </p>
+                                  </div>
+                                  <div className="rounded-lg px-4 py-3 bg-white/70 dark:bg-gray-800/40 border border-accent-200 dark:border-accent-700">
+                                    <p className="text-xs text-gray-600 dark:text-gray-400">Fines</p>
+                                    <p className="text-sm font-bold text-gray-900 dark:text-gray-100">
+                                      {Number(f ?? 0).toFixed(2)}%
+                                    </p>
+                                  </div>
+                                </div>
+
+                                {/* Decision path */}
+                                <p className="text-sm font-bold text-gray-700 dark:text-gray-200 mb-2">
+                                  Decision path (USCS flow):
+                                </p>
+                                <ul className="list-disc pl-5 text-sm text-gray-700 dark:text-gray-300 space-y-1">
+                                  {decisionPath.map((line, idx) => (
+                                    <li key={idx}>{line}</li>
+                                  ))}
+                                </ul>
+
+                                {/* Notes */}
+                                {notes?.length ? (
+                                  <div className="mt-4 border border-accent-200 dark:border-accent-700 rounded-lg p-4 bg-white/70 dark:bg-gray-800/40">
+                                    <p className="text-sm font-bold text-gray-700 dark:text-gray-200 mb-2">
+                                      Notes / What you need to finalize:
+                                    </p>
+                                    <ul className="list-disc pl-5 text-sm text-gray-700 dark:text-gray-300 space-y-1">
+                                      {notes.map((n, idx) => (
+                                        <li key={idx}>{n}</li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                ) : null}
+                              </>
+                            )}
+                          </div>
+                        </div>
+
                       </div>
-                      <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">Predicted Soil Type</p>
-                        <p className="text-base font-semibold text-gray-900 dark:text-gray-100">{selectedAnalysis.predicted_soil_type ?? 'Not provided'}</p>
-                      </div>
-                    </div>
-                  </div>
+                    );
+                  })()}
 
                   {/* Image */}
                   {selectedAnalysis.image_soil_type && (selectedAnalysis.image_soil_type.startsWith('http') || selectedAnalysis.image_soil_type.startsWith('https')) && (
