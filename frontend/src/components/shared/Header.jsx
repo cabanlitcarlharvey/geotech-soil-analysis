@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import { useNavigate } from 'react-router-dom';
 import { Sun, Moon, LogOut, Home, History, Beaker } from 'lucide-react';
 
@@ -39,15 +40,6 @@ function Header({ isDark, toggleTheme, onLogout, currentPage = 'home' }) {
     }
   ];
 
-  const getHoverClasses = (color) => {
-    const colorMap = {
-      amber: 'hover:bg-amber-200 dark:hover:bg-amber-800 focus:ring-amber-500',
-      blue: 'hover:bg-blue-200 dark:hover:bg-blue-800 focus:ring-blue-500',
-      green: 'hover:bg-green-200 dark:hover:bg-green-800 focus:ring-green-500',
-      red: 'hover:bg-red-100 dark:hover:bg-red-800 focus:ring-red-500'
-    };
-    return colorMap[color] || colorMap.amber;
-  };
 
   return (
     <header 
