@@ -1,11 +1,13 @@
-fastapi
-uvicorn
-python-multipart
-requests
-python-dotenv
-supabase
-pydantic
-opencv-python-headless
-numpy
+fastapi==0.115.0
+uvicorn==0.30.6
+python-multipart==0.0.9
+requests==2.32.3
+python-dotenv==1.0.1
+supabase==2.27.3
+pydantic>=2.11.7,<3
+opencv-python-headless==4.10.0.84
+
 tensorflow==2.19.0
-# PyJWT
+keras==3.9.2
+
+numpy==1.26.4
