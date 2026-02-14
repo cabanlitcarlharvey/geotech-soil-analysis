@@ -39,7 +39,7 @@ cnn_status = "model_not_loaded"
 
 # --- CONFIGURATION (Kailangan mong i-update ito!) ---
 # PAKI-UPDATE ITO gamit ang Local IP Address ng iyong ESP32.
-ESP32_IP = "http://192.168.1.210/" 
+ESP32_IP = os.environ.get("ESP32_IP", "http://192.168.1.210")
 ESP32_COMMAND_URL = f"{ESP32_IP}/command"
 # ----------------------------------------------------
 
