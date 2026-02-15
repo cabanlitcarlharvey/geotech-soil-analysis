@@ -18,6 +18,31 @@ import AnalysisControls from '../components/SoilAnalysis/AnalysisControls';
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
+// ✅ Helper: mag-poll ng /command/{id}/result hanggang 'done' o mag-timeout
+async function waitForCommandResult(commandId, timeoutMs = 30000) {
+  const pollInterval = 1500; // mag-check every 1.5 seconds
+  const start = Date.now();
+
+  while (Date.now() - start < timeoutMs) {
+    await new Promise(resolve => setTimeout(resolve, pollInterval));
+
+    const res = await fetch(`${API_URL}/command/${commandId}/result`, {
+      headers: { 'ngrok-skip-browser-warning': 'true' }
+    });
+
+    if (!res.ok) throw new Error(`Polling error: HTTP ${res.status}`);
+
+    const data = await res.json();
+
+    if (data.status === 'done') {
+      return data.result; // ito na ang actual response ng ESP32
+    }
+    // kung 'pending' o 'processing' pa, mag-loop ulit
+  }
+
+  throw new Error('ESP32 did not respond in time. Check if it is connected and polling.');
+}
+
 function SoilAnalysis() {
   const navigate = useNavigate();
   const videoRef = useRef(null);
@@ -44,7 +69,10 @@ function SoilAnalysis() {
   const [jwtToken, setJwtToken] = useState(null);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [capturedImageData, setCapturedImageData] = useState(null);
-  const hasCapturedImage = !!capturedImageData; // true kapag may na-capture o na-upload na image
+  // ✅ Bagong state: para ipakita ang "Waiting for ESP32..." message
+  const [isWaitingForESP32, setIsWaitingForESP32] = useState(false);
+
+  const hasCapturedImage = !!capturedImageData;
 
   const steps = [
     { label: 'Location', status: 'Enter location for soil sample...' },
@@ -58,15 +86,8 @@ function SoilAnalysis() {
   const handleBackStep = () => {
     const currentIndex = steps.findIndex((s) => s.status === step);
     if (currentIndex > 0) {
-      // Optional: pag nasa capture image, pwede mong i-stop ang camera
       if (steps[currentIndex].label === 'Capture Image') {
         stopCamera();
-        // kung gusto mong i‑clear din ang prediction/image, pwede mong i-uncomment:
-        // setImagePrediction(null);
-        // setPredictionConfidence(null);
-        // setPredictionStatus(null);
-        // setPredictionProbabilities(null);
-        // setCapturedImageData(null);
       }
       setStep(steps[currentIndex - 1].status);
     }
@@ -211,14 +232,11 @@ function SoilAnalysis() {
       setPredictionProbabilities(data.probabilities);
 
       if (isUnclassifiedPrediction(data.soil_type)) {
-        // Stay in capture step; require retake
         setStep('Capture soil image for prediction...');
-        //setError('Prediction not confident — retake required. Please capture a clearer soil image.');
-        stopCamera(); // optional: stop so user can restart cleanly
+        stopCamera();
         return;
       }
 
-      // ✅ Allowed to proceed to weighing
       setStep('Place unwashed soil sample, press 1...');
       stopCamera();
       setError('');
@@ -233,36 +251,35 @@ function SoilAnalysis() {
   const canProceedToWeighing = imagePrediction && !isUnclassifiedPrediction(imagePrediction);
   
   const retakePrediction = () => {
-    // Clear prediction + captured image, bring user back to capture step
     setImagePrediction(null);
     setPredictionConfidence(null);
     setPredictionStatus(null);
     setPredictionProbabilities(null);
     setCapturedImageData(null);
-  
-    // Also clear any weight/results progress to avoid inconsistent flow
     setWeight(null);
     setTotalWeight(null);
     setGravelWeight(null);
     setResults(null);
     setSaveStatus('');
-  
     setError('');
     setStep('Capture soil image for prediction...');
   };  
 
+  // ============================================================
+  // ✅ UPDATED sendCommand — gumagamit na ng polling para sa ESP32
+  // ============================================================
   const sendCommand = async (cmd) => {
     try {
       if (!jwtToken && cmd === '3') {
         throw new Error('User not authenticated. Please log in.');
       }
-      // Block weighing if prediction is Unclassified
       if (['1', '2', '3'].includes(cmd) && !canProceedToWeighing) {
         throw new Error('Cannot proceed: prediction is Unclassified. Please retake the image first.');
       }
 
-      let response;
+      setError('');
 
+      // --- COMMAND 3: POST with image data ---
       if (cmd === '3') {
         const requestBody = {
           input: cmd,
@@ -271,7 +288,11 @@ function SoilAnalysis() {
           location: fullLocation || null,
         };
 
-        response = await fetch(`${API_URL}/command`, {
+        // Command 3 sa backend ay nag-aantay na ng ESP32 result (backend ang mag-poll internally)
+        // Kaya dito sa frontend, mag-show lang tayo ng loading tapos hintayin ang response
+        setIsWaitingForESP32(true);
+
+        const response = await fetch(`${API_URL}/command`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -280,81 +301,126 @@ function SoilAnalysis() {
           },
           body: JSON.stringify(requestBody)
         });
+
+        setIsWaitingForESP32(false);
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.detail || `HTTP error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        handleCommandResponse(data, cmd);
+
+      // --- COMMANDS 1, 2, W, R: GET with polling ---
       } else {
+        // Step 1: I-queue ang command
         const url = `${API_URL}/command?input=${cmd}`;
-        response = await fetch(url, { 
+        const queueResponse = await fetch(url, {
           method: 'GET',
           headers: { 'ngrok-skip-browser-warning': 'true' }
         });
-      }
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || `HTTP error: ${response.status}`);
-      }
-
-      const data = await response.json();
-
-      if (data.status === 'results') {
-        const { total_weight, gravel_weight, sand_weight, gravel_percent, sand_percent, fines_percent } = data;
-        if (
-          total_weight <= 0 ||
-          gravel_weight < 0 ||
-          sand_weight < 0 ||
-          gravel_weight + sand_weight > total_weight + 1 ||
-          Math.abs(gravel_percent + sand_percent + fines_percent - 100) > 1
-        ) {
-          throw new Error('Invalid weight or percentage data received.');
+        if (!queueResponse.ok) {
+          const errorData = await queueResponse.json();
+          throw new Error(errorData.detail || `HTTP error: ${queueResponse.status}`);
         }
+
+        const queueData = await queueResponse.json();
+        // queueData = { status: 'queued', command_id: '...', message: '...' }
+
+        if (cmd === 'R') {
+          // Para sa reset, hindi na kailangan hintayin — i-process na agad
+          // (ang ESP32 lang ang magre-reset ng weights niya, hindi nakakaapekto sa UI flow)
+          setIsWaitingForESP32(true);
+        } else {
+          setIsWaitingForESP32(true);
+        }
+
+        // Step 2: Hintayin ang ESP32 result sa pamamagitan ng polling
+        const esp32Result = await waitForCommandResult(queueData.command_id);
+        setIsWaitingForESP32(false);
+
+        handleCommandResponse(esp32Result, cmd);
       }
 
-      setError('');
-      
-      if (cmd !== 'W') {
-        setStep(data.message || 'Unknown status');
-      }
-      
-      if (data.status === 'total_weight') {
-        setTotalWeight(data.weight);
-        setWeight(data.weight);
-        setStep('Place gravel fraction, press 2...');
-      } else if (data.status === 'gravel_weight') {
-        setGravelWeight(data.weight);
-        setWeight(data.weight);
-        setStep('Place sand fraction, press 3...');
-      } else if (data.status === 'results') {
-        setResults({
-          total_weight: data.total_weight,
-          gravel_weight: data.gravel_weight,
-          sand_weight: data.sand_weight,
-          gravel_percent: data.gravel_percent,
-          sand_percent: data.sand_percent,
-          fines_percent: data.fines_percent,
-          soil_type: data.soil_type,
-        });
-        setSaveStatus(data.save_status || '');
-        setWeight(null);
-        setStep('Done. Press R to reset');
-      } else if (data.status === 'weight_check') {
-        setWeight(data.weight);
-      } else if (data.status === 'reset') {
-        setTotalWeight(null);
-        setGravelWeight(null);
-        setResults(null);
-        setWeight(null);
-        setImagePrediction(null);
-        setPredictionConfidence(null);
-        setPredictionStatus(null);
-        setPredictionProbabilities(null);
-        setCapturedImageData(null);
-        setFullLocation('');
-        setIsCameraActive(false);
-        setSaveStatus('');
-        setStep('Enter location for soil sample...');
-      }
-    } catch (error) {
-      setError(`Error: ${error.message}`);
+    } catch (err) {
+      setIsWaitingForESP32(false);
+      setError(`Error: ${err.message}`);
       setSaveStatus('');
+    }
+  };
+
+  // ✅ Inilipat ang response-handling logic sa sariling function para mas malinis
+  const handleCommandResponse = (data, cmd) => {
+    if (!data) {
+      setError('No response received from ESP32.');
+      return;
+    }
+
+    // Validate results data
+    if (data.status === 'results') {
+      const { total_weight, gravel_weight, sand_weight, gravel_percent, sand_percent, fines_percent } = data;
+      if (
+        total_weight <= 0 ||
+        gravel_weight < 0 ||
+        sand_weight < 0 ||
+        gravel_weight + sand_weight > total_weight + 1 ||
+        Math.abs(gravel_percent + sand_percent + fines_percent - 100) > 1
+      ) {
+        setError('Invalid weight or percentage data received.');
+        return;
+      }
+    }
+
+    if (cmd !== 'W') {
+      setStep(data.message || 'Unknown status');
+    }
+
+    if (data.status === 'total_weight') {
+      setTotalWeight(data.value ?? data.weight);
+      setWeight(data.value ?? data.weight);
+      setStep('Place gravel fraction, press 2...');
+
+    } else if (data.status === 'gravel_weight') {
+      setGravelWeight(data.value ?? data.weight);
+      setWeight(data.value ?? data.weight);
+      setStep('Place sand fraction, press 3...');
+
+    } else if (data.status === 'results') {
+      setResults({
+        total_weight: data.total_weight,
+        gravel_weight: data.gravel_weight,
+        sand_weight: data.sand_weight,
+        gravel_percent: data.gravel_percent,
+        sand_percent: data.sand_percent,
+        fines_percent: data.fines_percent,
+        soil_type: data.soil_type,
+      });
+      setSaveStatus(data.save_status || '');
+      setWeight(null);
+      setStep('Done. Press R to reset');
+
+    } else if (data.status === 'weight_check') {
+      setWeight(data.value ?? data.weight);
+
+    } else if (data.status === 'reset') {
+      setTotalWeight(null);
+      setGravelWeight(null);
+      setResults(null);
+      setWeight(null);
+      setImagePrediction(null);
+      setPredictionConfidence(null);
+      setPredictionStatus(null);
+      setPredictionProbabilities(null);
+      setCapturedImageData(null);
+      setFullLocation('');
+      setIsCameraActive(false);
+      setSaveStatus('');
+      setStep('Enter location for soil sample...');
+
+    } else if (data.status === 'error') {
+      setError(data.message || 'An error occurred.');
     }
   };
 
@@ -387,7 +453,6 @@ function SoilAnalysis() {
       const reader = new FileReader();
       reader.onloadend = async () => {
         const base64Image = reader.result;
-  
         setCapturedImageData(base64Image);
   
         const response = await fetch(`${API_URL}/predict`, {
@@ -396,9 +461,7 @@ function SoilAnalysis() {
             'Content-Type': 'application/json',
             'ngrok-skip-browser-warning': 'true',
           },
-          body: JSON.stringify({
-            image: base64Image.split(',')[1],
-          }),
+          body: JSON.stringify({ image: base64Image.split(',')[1] }),
         });
   
         if (!response.ok) {
@@ -407,7 +470,6 @@ function SoilAnalysis() {
         }
   
         const data = await response.json();
-  
         setImagePrediction(data.soil_type);
         setPredictionConfidence(data.confidence);
         setPredictionStatus(data.status);
@@ -415,7 +477,6 @@ function SoilAnalysis() {
 
         if (isUnclassifiedPrediction(data.soil_type)) {
           setStep('Capture soil image for prediction...');
-          //setError('Prediction not confident — retake required. Please upload a clearer soil image.');
           stopCamera();
           return;
         }
@@ -512,7 +573,6 @@ function SoilAnalysis() {
             {/* Camera Control */}
             {currentStepIndex >= 1 && currentStepIndex < 5 && (
               <>
-                {/* BEFORE CAPTURE: show camera controls */}
                 {!hasCapturedImage ? (
                   <CameraControl
                     isCameraActive={isCameraActive}
@@ -527,12 +587,10 @@ function SoilAnalysis() {
                     onUploadImage={handleImageFile}
                   />
                 ) : (
-                  /* AFTER CAPTURE: show captured image preview only */
                   <div className="mb-6 border-2 border-accent-400 dark:border-accent-700 bg-accent-50/80 dark:bg-gray-900/50 p-6 rounded-2xl shadow-lg">
                     <h3 className="text-xl font-bold mb-4 text-accent-900 dark:text-accent-200">
                       Captured Soil Image
                     </h3>
-
                     <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-accent-300 dark:border-accent-700">
                       <img
                         src={capturedImageData}
@@ -540,13 +598,25 @@ function SoilAnalysis() {
                         className="w-full max-w-2xl mx-auto rounded-lg border border-accent-300 dark:border-accent-700"
                       />
                     </div>
-
                     <p className="mt-3 text-sm text-gray-600 dark:text-gray-400 text-center">
                       If the image is blurry or unclear, tap <span className="font-semibold">Retake Image</span>.
                     </p>
                   </div>
                 )}
               </>
+            )}
+
+            {/* ✅ ESP32 Waiting Indicator */}
+            {isWaitingForESP32 && (
+              <div className="mb-6 p-4 bg-blue-100 dark:bg-blue-900/30 rounded-lg border-l-4 border-blue-600 dark:border-blue-400 flex items-center gap-3">
+                <svg className="animate-spin h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                </svg>
+                <p className="text-base font-semibold text-blue-800 dark:text-blue-300">
+                  Waiting for ESP32 to respond... Please place the sample on the scale.
+                </p>
+              </div>
             )}
 
             {/* Current Weight Display */}
@@ -559,10 +629,13 @@ function SoilAnalysis() {
               </div>
             )}
 
-            {/* Analysis Controls */}
+            {/* Analysis Controls — disabled habang nag-aantay */}
             {canProceedToWeighing && (
               <AnalysisControls
-                buttonStates={getButtonStates()}
+                buttonStates={isWaitingForESP32
+                  ? { step1: false, step2: false, step3: false } // i-disable lahat habang waiting
+                  : getButtonStates()
+                }
                 onSendCommand={sendCommand}
               />
             )}
