@@ -1,33 +1,35 @@
-import { useState, useEffect } from 'react';
-import { supabase } from '../supabaseClient';
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Mail, CheckCircle, XCircle, Sun, Moon } from 'lucide-react';
+import { useState, useEffect } from "react";
+import { supabase } from "../supabaseClient";
+import { useNavigate } from "react-router-dom";
+import { ArrowLeft, Mail, CheckCircle, XCircle, Sun, Moon } from "lucide-react";
 
 const ForgotPassword = () => {
-  const [email, setEmail] = useState('');
-  const [message, setMessage] = useState('');
-  const [error, setError] = useState('');
+  const [email, setEmail] = useState("");
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [isDark, setIsDark] = useState(localStorage.getItem('theme') === 'dark');
+  const [isDark, setIsDark] = useState(
+    localStorage.getItem("theme") === "dark",
+  );
   const navigate = useNavigate();
 
   useEffect(() => {
-    const theme = localStorage.getItem('theme') || 'light';
-    document.documentElement.classList.toggle('dark', theme === 'dark');
-    setIsDark(theme === 'dark');
+    const theme = localStorage.getItem("theme") || "light";
+    document.documentElement.classList.toggle("dark", theme === "dark");
+    setIsDark(theme === "dark");
   }, []);
 
   const toggleTheme = () => {
-    const newTheme = isDark ? 'light' : 'dark';
-    localStorage.setItem('theme', newTheme);
-    document.documentElement.classList.toggle('dark', newTheme === 'dark');
+    const newTheme = isDark ? "light" : "dark";
+    localStorage.setItem("theme", newTheme);
+    document.documentElement.classList.toggle("dark", newTheme === "dark");
     setIsDark(!isDark);
   };
 
   const handleReset = async (e) => {
     e.preventDefault();
-    setError('');
-    setMessage('');
+    setError("");
+    setMessage("");
     setLoading(true);
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
@@ -37,7 +39,7 @@ const ForgotPassword = () => {
     if (error) {
       setError(error.message);
     } else {
-      setMessage('Password reset link sent! Check your email inbox.');
+      setMessage("Password reset link sent! Check your email inbox.");
     }
     setLoading(false);
   };
@@ -56,7 +58,7 @@ const ForgotPassword = () => {
       <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl p-10 rounded-3xl shadow-2xl w-full max-w-md border border-slate-200/50 dark:border-slate-700/50">
         {/* Back Button */}
         <button
-          onClick={() => navigate('/login')}
+          onClick={() => navigate("/login")}
           className="flex items-center gap-2 text-accent-700 dark:text-accent-300 hover:text-accent-900 dark:hover:text-accent-100 mb-6 transition-colors"
         >
           <ArrowLeft className="w-5 h-5" />
@@ -121,19 +123,19 @@ const ForgotPassword = () => {
             disabled={loading}
             className={`w-full p-3 rounded-lg font-semibold text-white transition-all duration-300 ${
               loading
-                ? 'bg-accent-400 cursor-not-allowed'
-                : 'bg-accent-700 hover:bg-accent-800 transform hover:scale-[1.02]'
+                ? "bg-accent-400 cursor-not-allowed"
+                : "bg-accent-700 hover:bg-accent-800 transform hover:scale-[1.02]"
             }`}
           >
-            {loading ? 'Sending...' : 'Send Reset Link'}
+            {loading ? "Sending..." : "Send Reset Link"}
           </button>
         </form>
 
         {/* Additional Info */}
         <p className="text-center text-sm text-gray-600 dark:text-gray-400 mt-6">
-          Remember your password?{' '}
+          Remember your password?{" "}
           <button
-            onClick={() => navigate('/login')}
+            onClick={() => navigate("/login")}
             className="text-accent-700 dark:text-accent-300 font-semibold hover:underline"
           >
             Sign in

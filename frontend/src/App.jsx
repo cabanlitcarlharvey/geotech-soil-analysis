@@ -1,16 +1,21 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import ProtectedRoute from './components/ProtectedRoute';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import SoilAnalysis from './pages/SoilAnalysis';
-import ExpertDashboard from './pages/ExpertDashboard';
-import EngineerHome from './pages/EngineerHome';
-import EngineerAnalysisHistory from './pages/EngineerAnalysisHistory';
-import ExpertHome from './pages/ExpertHome';
-import AdminDashboard from './pages/AdminDashboard';
-import ForgotPassword from './pages/ForgotPassword';
-import ResetPassword from './pages/ResetPassword';
-import LandingPage from './pages/LandingPage';
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
+import ProtectedRoute from "./components/ProtectedRoute";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+import SoilAnalysis from "./pages/SoilAnalysis";
+import ExpertDashboard from "./pages/ExpertDashboard";
+import EngineerHome from "./pages/EngineerHome";
+import EngineerAnalysisHistory from "./pages/EngineerAnalysisHistory";
+import ExpertHome from "./pages/ExpertHome";
+import AdminDashboard from "./pages/AdminDashboard";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
+import LandingPage from "./pages/LandingPage";
 
 function App() {
   return (
