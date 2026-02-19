@@ -32,15 +32,44 @@ const ForgotPassword = () => {
     setMessage("");
     setLoading(true);
 
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
-    });
+    try {
+      // Check first if the email exists in the profiles table
+      // We join through auth.users via the profiles table which stores the user id
+      const { data, error: fetchError } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("email", email.trim().toLowerCase())
+        .maybeSingle();
 
-    if (error) {
-      setError(error.message);
-    } else {
-      setMessage("Password reset link sent! Check your email inbox.");
+      if (fetchError) {
+        setError("Something went wrong. Please try again.");
+        setLoading(false);
+        return;
+      }
+
+      if (!data) {
+        setError("No account found with that email address.");
+        setLoading(false);
+        return;
+      }
+
+      // Email exists — proceed with sending reset link
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(
+        email.trim().toLowerCase(),
+        {
+          redirectTo: `${window.location.origin}/reset-password`,
+        },
+      );
+
+      if (resetError) {
+        setError(resetError.message);
+      } else {
+        setMessage("Password reset link sent! Check your email inbox.");
+      }
+    } catch (err) {
+      setError("An unexpected error occurred. Please try again.");
     }
+
     setLoading(false);
   };
 
