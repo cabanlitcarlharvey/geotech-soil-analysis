@@ -8,11 +8,11 @@ const MAX_PASSWORD_LENGTH = 12;
 const SPECIAL_CHAR_REGEX = /[!@#$%^&*()_\-+=[\]{};:'",.<>/?\\|`~]/;
 const DIGIT_REGEX = /\d/;
 
-// Matches emoji using Unicode property escapes (ESLint-friendly)
-const EMOJI_REGEX = /\p{Emoji}/u;
+// Bago - tumatarget lang ng actual emoji, hindi digits/symbols:
+const EMOJI_REGEX = /\p{Extended_Pictographic}/u;
 
 // Strips all emoji from a string
-const stripEmoji = (value) => value.replace(/\p{Emoji}/gu, "");
+const stripEmoji = (value) => value.replace(/\p{Extended_Pictographic}/gu, "");
 
 const ResetPassword = () => {
   const [password, setPassword] = useState("");
