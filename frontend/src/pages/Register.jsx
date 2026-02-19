@@ -8,6 +8,12 @@ const MAX_PASSWORD_LENGTH = 12;
 const SPECIAL_CHAR_REGEX = /[!@#$%^&*()_\-+=[\]{};:'",.<>/?\\|`~]/;
 const DIGIT_REGEX = /\d/;
 
+// Matches emoji and unicode symbols
+const EMOJI_REGEX = /\p{Emoji}/u;
+
+// Strips all emoji from a string
+const stripEmoji = (value) => value.replace(/\p{Emoji}/gu, "");
+
 const Register = () => {
   const [form, setForm] = useState({
     email: "",
@@ -20,6 +26,7 @@ const Register = () => {
   const [passwordErrors, setPasswordErrors] = useState([]);
   const [isPasswordValid, setIsPasswordValid] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [emojiWarning, setEmojiWarning] = useState("");
   const [isDark, setIsDark] = useState(
     localStorage.getItem("theme") === "dark",
   );
@@ -54,6 +61,18 @@ const Register = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+
+    // Check if emoji was attempted
+    if (EMOJI_REGEX.test(value)) {
+      setEmojiWarning("Emoji are not allowed in any field.");
+      // Strip emoji from the value instead of blocking entirely
+      const cleaned = stripEmoji(value);
+      setForm({ ...form, [name]: cleaned });
+      if (name === "password") validatePassword(cleaned);
+      return;
+    }
+
+    setEmojiWarning("");
     setForm({ ...form, [name]: value });
 
     if (name === "password") {
@@ -65,6 +84,16 @@ const Register = () => {
     e.preventDefault();
     setError("");
     setSuccess("");
+
+    // Final safety check before submit
+    if (
+      EMOJI_REGEX.test(form.email) ||
+      EMOJI_REGEX.test(form.password) ||
+      EMOJI_REGEX.test(form.full_name)
+    ) {
+      setError("Emoji are not allowed in any field.");
+      return;
+    }
 
     if (!validatePassword(form.password)) {
       setError("Password does not meet requirements.");
@@ -177,6 +206,15 @@ const Register = () => {
             Join GeoTech Soil Analysis for smarter, sustainable soil solutions.
           </p>
         </div>
+
+        {/* Global Emoji Warning */}
+        {emojiWarning && (
+          <div className="mb-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-yellow-500 rounded">
+            <p className="text-yellow-700 dark:text-yellow-300 text-sm">
+              ⚠️ {emojiWarning}
+            </p>
+          </div>
+        )}
 
         <div className="mb-5">
           <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">

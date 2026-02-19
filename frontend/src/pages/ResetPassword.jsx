@@ -8,6 +8,12 @@ const MAX_PASSWORD_LENGTH = 12;
 const SPECIAL_CHAR_REGEX = /[!@#$%^&*()_\-+=[\]{};:'",.<>/?\\|`~]/;
 const DIGIT_REGEX = /\d/;
 
+// Matches emoji using Unicode property escapes (ESLint-friendly)
+const EMOJI_REGEX = /\p{Emoji}/u;
+
+// Strips all emoji from a string
+const stripEmoji = (value) => value.replace(/\p{Emoji}/gu, "");
+
 const ResetPassword = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -16,11 +22,11 @@ const ResetPassword = () => {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [emojiWarning, setEmojiWarning] = useState("");
   const [isDark, setIsDark] = useState(
     localStorage.getItem("theme") === "dark",
   );
 
-  // NEW: gate so we don't redirect while Supabase is still processing the URL tokens
   const [isReady, setIsReady] = useState(false);
   const [isInvalidLink, setIsInvalidLink] = useState(false);
 
@@ -31,22 +37,17 @@ const ResetPassword = () => {
     document.documentElement.classList.toggle("dark", theme === "dark");
     setIsDark(theme === "dark");
 
-    // NEW: detect if URL contains reset params (Supabase may use different params depending on setup)
     const hasRecoveryParams = () => {
       const hash = window.location.hash || "";
       const search = window.location.search || "";
-
-      // common reset params: access_token/refresh_token in hash, or code in query
       const hasAccessToken = hash.includes("access_token=");
       const hasRefreshToken = hash.includes("refresh_token=");
       const hasCode = search.includes("code=");
-
       return hasAccessToken || hasRefreshToken || hasCode;
     };
 
     let mounted = true;
 
-    // NEW: listen for PASSWORD_RECOVERY event
     const { data: listener } = supabase.auth.onAuthStateChange((event) => {
       if (!mounted) return;
       if (
@@ -60,21 +61,17 @@ const ResetPassword = () => {
 
     const verifySession = async () => {
       try {
-        // Give Supabase a moment to parse URL tokens
         await new Promise((r) => setTimeout(r, 400));
 
         const { data, error } = await supabase.auth.getSession();
         const session = data?.session;
 
-        // If we already got a session, we're good
         if (session) {
           if (mounted) setIsReady(true);
           return;
         }
 
-        // If no session yet but URL has recovery params, don't redirect—allow time for event
         if (hasRecoveryParams()) {
-          // Wait a bit longer; sometimes it takes a second
           await new Promise((r) => setTimeout(r, 900));
 
           const { data: data2 } = await supabase.auth.getSession();
@@ -83,7 +80,6 @@ const ResetPassword = () => {
             return;
           }
 
-          // Still no session after waiting: treat as invalid/expired
           if (mounted) {
             setIsInvalidLink(true);
             setErrors([
@@ -93,7 +89,6 @@ const ResetPassword = () => {
           return;
         }
 
-        // No session and no recovery params = user opened page directly
         if (error || !session) {
           if (mounted) {
             setIsInvalidLink(true);
@@ -121,7 +116,6 @@ const ResetPassword = () => {
   }, [navigate]);
 
   useEffect(() => {
-    // NEW: if invalid, redirect after showing message
     if (isInvalidLink) {
       const t = setTimeout(() => navigate("/forgot-password"), 3000);
       return () => clearTimeout(t);
@@ -147,6 +141,28 @@ const ResetPassword = () => {
     return errs;
   };
 
+  const handlePasswordChange = (e) => {
+    const { value } = e.target;
+    if (EMOJI_REGEX.test(value)) {
+      setEmojiWarning("Emoji are not allowed in the password fields.");
+      setPassword(stripEmoji(value));
+      return;
+    }
+    setEmojiWarning("");
+    setPassword(value);
+  };
+
+  const handleConfirmPasswordChange = (e) => {
+    const { value } = e.target;
+    if (EMOJI_REGEX.test(value)) {
+      setEmojiWarning("Emoji are not allowed in the password fields.");
+      setConfirmPassword(stripEmoji(value));
+      return;
+    }
+    setEmojiWarning("");
+    setConfirmPassword(value);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrors([]);
@@ -154,6 +170,12 @@ const ResetPassword = () => {
 
     if (!isReady) {
       setErrors(["Please wait… still validating your reset link."]);
+      return;
+    }
+
+    // Final safety check before submit
+    if (EMOJI_REGEX.test(password) || EMOJI_REGEX.test(confirmPassword)) {
+      setErrors(["Emoji are not allowed in the password fields."]);
       return;
     }
 
@@ -180,7 +202,6 @@ const ResetPassword = () => {
 
       setMessage("Password successfully updated! Redirecting to login...");
 
-      // optional: sign out to ensure clean state
       await supabase.auth.signOut();
 
       setTimeout(() => navigate("/login"), 3000);
@@ -211,11 +232,19 @@ const ResetPassword = () => {
           Reset Password
         </h2>
 
-        {/* NEW: show a gentle status while waiting */}
         {!isReady && !isInvalidLink && (
           <p className="mb-4 text-center text-slate-600 dark:text-slate-300">
             Preparing your reset link…
           </p>
+        )}
+
+        {/* Emoji Warning */}
+        {emojiWarning && (
+          <div className="mb-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-yellow-500 rounded">
+            <p className="text-yellow-700 dark:text-yellow-300 text-sm">
+              ⚠️ {emojiWarning}
+            </p>
+          </div>
         )}
 
         <div className="mb-6">
@@ -228,7 +257,7 @@ const ResetPassword = () => {
               type={showPassword ? "text" : "password"}
               className="w-full p-4 pr-14 text-xl border border-accent-400 rounded-lg dark:bg-gray-700 dark:text-white bg-accent-50"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={handlePasswordChange}
               required
               disabled={!isReady}
             />
@@ -258,7 +287,7 @@ const ResetPassword = () => {
               type={showConfirmPassword ? "text" : "password"}
               className="w-full p-4 pr-14 text-xl border border-accent-400 rounded-lg dark:bg-gray-700 dark:text-white bg-accent-50"
               value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
+              onChange={handleConfirmPasswordChange}
               required
               disabled={!isReady}
             />
